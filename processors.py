@@ -13,6 +13,7 @@ import os
 import shutil
 import glob
 import gc
+import threading
 from pdf2image import convert_from_path
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -29,6 +30,7 @@ from config import (
 
 # 配置日志
 logger = logging.getLogger(__name__)
+model_inference_lock = threading.Lock()
 
 # 模型管理器
 class ModelManager:
@@ -106,7 +108,20 @@ class TagModelManager:
         self.rating_indexes = []
         self.input_name = None
         self.output_name = None
+        self.general_tag_names = []
+        self.character_tag_names = []
+        self.alias_lookup = self._build_alias_lookup()
         logger.info(f"标签模型管理器已创建，首次调用时加载模型: {self.model_name}")
+
+    def _build_alias_lookup(self):
+        alias_lookup = {}
+        for broad_key, aliases in WD_BROAD_TAG_ALIASES.items():
+            normalized_broad_key = broad_key.strip().lower().replace('_', ' ')
+            alias_lookup.setdefault(normalized_broad_key, []).append(broad_key)
+            for alias in aliases:
+                normalized_alias = alias.strip().lower().replace('_', ' ')
+                alias_lookup.setdefault(normalized_alias, []).append(broad_key)
+        return alias_lookup
 
     def _load_pipeline(self, model_name):
         logger.info(f"加载标签模型: {model_name}")
@@ -116,9 +131,19 @@ class TagModelManager:
         self.rating_indexes = self.tags_df.index[self.tags_df['category'] == 9].tolist()
         self.general_indexes = self.tags_df.index[self.tags_df['category'] == 0].tolist()
         self.character_indexes = self.tags_df.index[self.tags_df['category'] == 4].tolist()
+        tag_names = self.tags_df['name'].astype(str).tolist()
+        self.general_tag_names = [tag_names[idx] for idx in self.general_indexes]
+        self.character_tag_names = [tag_names[idx] for idx in self.character_indexes]
+
+        session_options = ort.SessionOptions()
+        session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        cpu_count = os.cpu_count() or 1
+        session_options.intra_op_num_threads = max(1, cpu_count // 2)
+        session_options.inter_op_num_threads = 1
 
         session = ort.InferenceSession(
             model_path,
+            sess_options=session_options,
             providers=['CPUExecutionProvider']
         )
         self.input_name = session.get_inputs()[0].name
@@ -137,7 +162,6 @@ class TagModelManager:
             old_pipe = self.pipe
             self.pipe = self._load_pipeline(self.model_name)
             del old_pipe
-            gc.collect()
             self.usage_count = 0
             logger.info("标签模型重置完成")
 
@@ -334,8 +358,6 @@ class VideoProcessor:
             with Image.open(frame_path) as img:
                 result = process_image(img)
                 frame_num = int(Path(frame_path).stem.split('-')[1])
-                # 处理完单帧后进行垃圾回收
-                gc.collect()
                 return frame_num, result
         except Exception as e:
             logger.error(f"处理帧 {frame_path} 失败: {str(e)}")
@@ -363,9 +385,6 @@ class VideoProcessor:
                         logger.info(f"在帧 {frame_num} 发现匹配内容")
                         return result
                 
-                # 处理完一帧后释放内存
-                gc.collect()
-            
             return last_result
             
         except Exception as e:
@@ -388,19 +407,17 @@ def process_image(image):
     """处理单张图片并返回检测结果"""
     try:
         logger.info("开始处理图片")
-        
-        # 获取模型管理器的管道
-        pipe = model_manager.get_pipeline()
-        
-        # 使用管道处理图像
-        result = pipe(image)
+
+        with model_inference_lock:
+            # 获取模型管理器的管道
+            pipe = model_manager.get_pipeline()
+
+            # 使用管道处理图像
+            result = pipe(image)
         normalized = _normalize_nsfw_result(result)
         nsfw_score = normalized['nsfw']
         normal_score = normalized['normal']
         logger.info(f"图片处理完成: NSFW={nsfw_score:.3f}, Normal={normal_score:.3f}")
-        
-        # 强制垃圾回收
-        gc.collect()
         
         return {
             'nsfw': nsfw_score,
@@ -455,12 +472,7 @@ def _normalize_nsfw_result(result):
 def _normalize_tag_results(result, include_fallback=True):
     """规范化标签结果"""
     tag_scores = {}
-    alias_lookup = {}
-
-    for broad_key, aliases in WD_BROAD_TAG_ALIASES.items():
-        alias_lookup[broad_key] = broad_key
-        for alias in aliases:
-            alias_lookup[alias.strip().lower()] = broad_key
+    alias_lookup = tag_model_manager.alias_lookup
 
     for item in result:
         score = float(item.get('score', 0))
@@ -471,22 +483,23 @@ def _normalize_tag_results(result, include_fallback=True):
         if not raw_label:
             continue
 
-        broad_key = alias_lookup.get(raw_label)
-        if not broad_key:
+        broad_keys = alias_lookup.get(raw_label)
+        if not broad_keys:
             continue
 
-        label = BROAD_TAG_LABELS.get(broad_key)
-        if not label:
-            continue
-
-        existing = tag_scores.get(label)
         normalized_score = round(score, 4)
-        if existing is None or normalized_score > existing['score']:
-            tag_scores[label] = {
-                'key': label,
-                'label': label,
-                'score': normalized_score
-            }
+        for broad_key in broad_keys:
+            label = BROAD_TAG_LABELS.get(broad_key)
+            if not label:
+                continue
+
+            existing = tag_scores.get(label)
+            if existing is None or normalized_score > existing['score']:
+                tag_scores[label] = {
+                    'key': label,
+                    'label': label,
+                    'score': normalized_score
+                }
 
     tags = list(tag_scores.values())
 
@@ -512,8 +525,6 @@ def process_image_tags(image):
         tags = _normalize_tag_results(result, include_fallback=True)
         logger.info(f"图片标签处理完成，返回 {len(tags)} 个标签")
 
-        gc.collect()
-
         return {
             'type': 'image',
             'tags': tags
@@ -524,20 +535,26 @@ def process_image_tags(image):
 
 
 def _prepare_wd_image(image):
-    if image.mode != 'RGBA':
-        rgba_image = image.convert('RGBA')
+    if image.mode == 'RGB':
+        composited = image.copy()
     else:
-        rgba_image = image.copy()
+        if image.mode != 'RGBA':
+            rgba_image = image.convert('RGBA')
+        else:
+            rgba_image = image.copy()
 
-    background = Image.new('RGBA', rgba_image.size, (255, 255, 255, 255))
-    composited = Image.alpha_composite(background, rgba_image).convert('RGB')
+        background = Image.new('RGBA', rgba_image.size, (255, 255, 255, 255))
+        composited = Image.alpha_composite(background, rgba_image).convert('RGB')
 
     width, height = composited.size
     max_side = max(width, height)
-    padded = Image.new('RGB', (max_side, max_side), (255, 255, 255))
-    paste_x = (max_side - width) // 2
-    paste_y = (max_side - height) // 2
-    padded.paste(composited, (paste_x, paste_y))
+    if width == height:
+        padded = composited
+    else:
+        padded = Image.new('RGB', (max_side, max_side), (255, 255, 255))
+        paste_x = (max_side - width) // 2
+        paste_y = (max_side - height) // 2
+        padded.paste(composited, (paste_x, paste_y))
 
     resized = padded.resize((448, 448), Image.BICUBIC)
     image_array = np.asarray(resized, dtype=np.float32)
@@ -554,19 +571,19 @@ def _run_wd_tagger(image, session):
     )[0][0]
 
     rows = []
-    for idx in tag_model_manager.general_indexes:
+    for idx, label in zip(tag_model_manager.general_indexes, tag_model_manager.general_tag_names):
         score = float(output[idx])
         if score >= WD_GENERAL_THRESHOLD:
             rows.append({
-                'label': str(tag_model_manager.tags_df.iloc[idx]['name']),
+                'label': label,
                 'score': score
             })
 
-    for idx in tag_model_manager.character_indexes:
+    for idx, label in zip(tag_model_manager.character_indexes, tag_model_manager.character_tag_names):
         score = float(output[idx])
         if score >= WD_CHARACTER_THRESHOLD:
             rows.append({
-                'label': str(tag_model_manager.tags_df.iloc[idx]['name']),
+                'label': label,
                 'score': score
             })
 
@@ -580,7 +597,6 @@ class TagVideoProcessor(VideoProcessor):
             with Image.open(frame_path) as img:
                 result = process_image_tags(img)
                 frame_num = int(Path(frame_path).stem.split('-')[1])
-                gc.collect()
                 return frame_num, result
         except Exception as e:
             logger.error(f"处理标签帧 {frame_path} 失败: {str(e)}")
@@ -597,29 +613,23 @@ class TagVideoProcessor(VideoProcessor):
             tag_scores = {}
             frames_analyzed = 0
 
-            for frame in sorted(frame_files):
+            for frame in frame_files:
                 _, result = self._process_frame(frame)
                 if result is None:
                     continue
 
                 frames_analyzed += 1
-                frame_tags = []
                 for tag in result['tags']:
-                    if tag['key'] == 'other':
+                    if tag['key'] == '其他':
                         continue
-                    frame_tags.append(tag)
-
-                for tag in frame_tags:
                     existing = tag_scores.get(tag['key'])
                     if existing is None or tag['score'] > existing['score']:
                         tag_scores[tag['key']] = tag
 
-                gc.collect()
-
             tags = sorted(tag_scores.values(), key=lambda item: item['score'], reverse=True)[:TAG_TOP_K]
             if not tags:
                 tags = [{
-                    'key': 'other',
+                    'key': '其他',
                     'label': '其他',
                     'score': 1.0
                 }]
@@ -646,7 +656,6 @@ def process_video_tags(video_path):
     """处理视频文件并返回自动标签结果"""
     processor = TagVideoProcessor(video_path)
     result = processor.process()
-    gc.collect()
     return result
     
 def process_pdf_file(pdf_stream):
@@ -898,6 +907,78 @@ def process_video_file(video_path):
     gc.collect()
     return result
 
+
+def _process_archive_member(handler, inner_filename):
+    """处理压缩包内的单个文件成员"""
+    try:
+        if isinstance(inner_filename, bytes):
+            inner_filename = handler.__encode_filename(inner_filename)
+
+        content = handler.extract_file(inner_filename)
+        ext = os.path.splitext(inner_filename)[1].lower()
+
+        if ext in IMAGE_EXTENSIONS:
+            with Image.open(io.BytesIO(content)) as img:
+                result = process_image(img)
+                return {
+                    'matched_file': inner_filename,
+                    'result': result
+                }
+
+        if ext == '.pdf':
+            result = process_pdf_file(content)
+            if result:
+                return {
+                    'matched_file': inner_filename,
+                    'result': result
+                }
+            return None
+
+        if ext in {'.doc', '.docx'}:
+            if ext == '.doc':
+                result = process_doc_file(content)
+            else:
+                result = process_docx_file(content)
+
+            if result:
+                return {
+                    'matched_file': inner_filename,
+                    'result': result
+                }
+            return None
+
+        if ext in VIDEO_EXTENSIONS:
+            temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+            try:
+                with open(temp_video.name, 'wb') as f:
+                    f.write(content)
+
+                result = process_video_file(temp_video.name)
+                if result:
+                    return {
+                        'matched_file': inner_filename,
+                        'result': result
+                    }
+                return None
+            finally:
+                if os.path.exists(temp_video.name):
+                    os.unlink(temp_video.name)
+
+        return None
+    except Exception as e:
+        logger.error(f"处理文件 {inner_filename} 时出错: {str(e)}")
+        return None
+
+
+def _process_archive_member_with_lock(handler, archive_read_lock, inner_filename):
+    with archive_read_lock:
+        return _process_archive_member(handler, inner_filename)
+
+
+def _get_archive_worker_count(file_count):
+    cpu_count = os.cpu_count() or 1
+    return max(1, min(4, cpu_count, file_count))
+
 def process_archive(filepath, filename, depth=0, max_depth=100):
     """处理压缩文件，支持嵌套压缩包
     
@@ -965,71 +1046,41 @@ def process_archive(filepath, filename, depth=0, max_depth=100):
                 sorted_files = sort_files_by_priority(handler, processable_files)
                 last_result = None
                 matched_content = None
-                
-                for inner_filename in sorted_files:
-                    try:
-                        # 确保内部文件名已正确编码
-                        if isinstance(inner_filename, bytes):
-                            inner_filename = handler.__encode_filename(inner_filename)
-                            
-                        content = handler.extract_file(inner_filename)
-                        ext = os.path.splitext(inner_filename)[1].lower()
-                        
-                        if ext in IMAGE_EXTENSIONS:
-                            # 使用with语句确保图像被关闭
-                            with Image.open(io.BytesIO(content)) as img:
-                                result = process_image(img)
-                                last_result = {
-                                    'matched_file': inner_filename,
-                                    'result': result
-                                }
-                                
-                                if result['nsfw'] > NSFW_THRESHOLD:
-                                    matched_content = last_result
-                                    break
-                            
-                            # 处理完一张图片后强制垃圾回收
-                            gc.collect()
-                        
-                        elif ext == '.pdf':
-                            result = process_pdf_file(content)
-                            if result:
-                                last_result = {
-                                    'matched_file': inner_filename,
-                                    'result': result
-                                }
-                                if result['nsfw'] > NSFW_THRESHOLD:
-                                    matched_content = last_result
-                                    break
-                            
-                            # 处理完PDF后强制垃圾回收
-                            gc.collect()
-                        
-                        elif ext in VIDEO_EXTENSIONS:
-                            temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+                archive_read_lock = threading.Lock()
+
+                worker_count = _get_archive_worker_count(len(sorted_files))
+                chunk_size = worker_count
+
+                for chunk_start in range(0, len(sorted_files), chunk_size):
+                    chunk = sorted_files[chunk_start:chunk_start + chunk_size]
+                    indexed_results = {}
+
+                    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                        future_to_index = {
+                            executor.submit(_process_archive_member_with_lock, handler, archive_read_lock, inner_filename): index
+                            for index, inner_filename in enumerate(chunk)
+                        }
+
+                        for future in as_completed(future_to_index):
+                            chunk_index = future_to_index[future]
                             try:
-                                with open(temp_video.name, 'wb') as f:
-                                    f.write(content)
-                                
-                                result = process_video_file(temp_video.name)
-                                if result:
-                                    last_result = {
-                                        'matched_file': inner_filename,
-                                        'result': result
-                                    }
-                                    if result['nsfw'] > NSFW_THRESHOLD:
-                                        matched_content = last_result
-                                        break
-                            finally:
-                                if os.path.exists(temp_video.name):
-                                    os.unlink(temp_video.name)
-                                
-                                # 处理完视频后强制垃圾回收
-                                gc.collect()
-                                    
-                    except Exception as e:
-                        logger.error(f"处理文件 {inner_filename} 时出错: {str(e)}")
-                        continue
+                                indexed_results[chunk_index] = future.result()
+                            except Exception as e:
+                                logger.error(f"并发处理压缩包文件失败: {str(e)}")
+                                indexed_results[chunk_index] = None
+
+                    for chunk_index in range(len(chunk)):
+                        result_payload = indexed_results.get(chunk_index)
+                        if not result_payload:
+                            continue
+
+                        last_result = result_payload
+                        if result_payload['result']['nsfw'] > NSFW_THRESHOLD:
+                            matched_content = result_payload
+                            break
+
+                    if matched_content:
+                        break
 
                 if matched_content:
                     logger.info(f"在压缩包 {encoded_filename} 中发现匹配内容: {matched_content['matched_file']}")

@@ -99,9 +99,6 @@ class TempFileHandler:
                 logger.error(f"清理临时目录失败 {dir_path}: {str(e)}")
         self.temp_dirs.clear()
 
-        # 强制垃圾回收
-        gc.collect()
-
 def detect_file_type(file_path):
     """检测文件类型，使用文件的前2048字节"""
     try:
@@ -149,8 +146,6 @@ def process_file_by_type(file_path, detected_type, original_filename, temp_handl
                 # 使用with语句确保Image对象正确关闭
                 with Image.open(f) as image:
                     result = process_image(image)
-                    # 处理完图片后强制垃圾回收
-                    gc.collect()
                     return {
                         'status': 'success',
                         'filename': original_filename,
@@ -161,8 +156,6 @@ def process_file_by_type(file_path, detected_type, original_filename, temp_handl
             with open(file_path, 'rb') as f:
                 pdf_stream = f.read()
                 result = process_pdf_file(pdf_stream)
-                # 处理完PDF后强制垃圾回收
-                gc.collect()
                 if result:
                     return {
                         'status': 'success',
@@ -176,8 +169,6 @@ def process_file_by_type(file_path, detected_type, original_filename, temp_handl
 
         elif ext in VIDEO_EXTENSIONS:
             result = process_video_file(file_path)
-            # 处理完视频后强制垃圾回收
-            gc.collect()
             if result:
                 return {
                     'status': 'success',
@@ -191,8 +182,6 @@ def process_file_by_type(file_path, detected_type, original_filename, temp_handl
 
         elif ext in {'.zip', '.rar', '.7z', '.gz'}:
             result = process_archive(file_path, original_filename)
-            # 处理完压缩包后强制垃圾回收
-            gc.collect()
             return result
 
         elif ext in DOCUMENT_EXTENSIONS:
@@ -202,9 +191,6 @@ def process_file_by_type(file_path, detected_type, original_filename, temp_handl
                     result = process_doc_file(file_content)
                 else:  # .docx
                     result = process_docx_file(file_content)
-
-                # 处理完文档后强制垃圾回收
-                gc.collect()
 
                 if result:
                     return {
@@ -254,7 +240,6 @@ def tag_file_by_type(file_path, detected_type, original_filename):
                 from PIL import Image
                 with Image.open(f) as image:
                     result = process_image_tags(image)
-                    gc.collect()
                     return {
                         'status': 'success',
                         'filename': original_filename,
@@ -263,7 +248,6 @@ def tag_file_by_type(file_path, detected_type, original_filename):
 
         if ext in VIDEO_EXTENSIONS:
             result = process_video_tags(file_path)
-            gc.collect()
             if result:
                 return {
                     'status': 'success',
