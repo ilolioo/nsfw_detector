@@ -1,6 +1,6 @@
 services:
   nsfw-detector:
-    image: chaoszhu/nsfw_detector:latest
+    image: ilolioo/nsfw_detector:latest
     container_name: nsfw-detector
     restart: unless-stopped
     ports:

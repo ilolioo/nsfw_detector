@@ -45,10 +45,10 @@
 
 ```bash
 # 1. 创建nsfw_detector目录
-mkdir -p /root/nsfw_detector && cd /root/nsfw_detector
+mkdir -p /opt/nsfw_detector && cd /opt/nsfw_detector
 
 # 2. 下载docker-compose.yml文件
-wget https://git.221022.xyz/https://raw.githubusercontent.com/chaos-zhu/nsfw_detector/refs/heads/main/docker-compose.yml
+wget https://raw.githubusercontent.com/ilolioo/nsfw_detector/refs/heads/main/docker-compose.yml
 
 # 3. 启动服务【注意docker-compose.yml文件中支持的环境变量】
 docker compose up -d
@@ -57,7 +57,7 @@ docker compose up -d
 ### docker部署（不推荐）
 
 ```bash
-docker run -d -p 3333:3333 --name nsfw-detector chaoszhu/nsfw_detector:latest
+docker run -d -p 3333:3333 --name nsfw-detector ilolioo/nsfw_detector:latest
 ```
 支持的系统架构：`x86_64`、`ARM64(此版本未构建)`
 
