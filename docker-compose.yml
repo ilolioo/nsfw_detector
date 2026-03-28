@@ -1,6 +1,9 @@
 services:
   nsfw-detector:
-    image: ilolioo/nsfw_detector:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nsfw_detector:local
     container_name: nsfw-detector
     restart: unless-stopped
     ports:

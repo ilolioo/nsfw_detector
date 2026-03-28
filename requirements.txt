@@ -1,0 +1,12 @@
+flask==2.0.1
+werkzeug==2.0.3
+opencv-python-headless
+rarfile
+py7zr
+Pillow
+transformers
+pdf2image
+python-docx
+torch --index-url https://download.pytorch.org/whl/cpu
+python-magic
+numpy
