@@ -18,7 +18,7 @@ from utils import ArchiveHandler, can_process_file, sort_files_by_priority
 from config import (
     MAX_FILE_SIZE, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, 
     NSFW_THRESHOLD, FFMPEG_MAX_FRAMES, FFMPEG_TIMEOUT, ARCHIVE_EXTENSIONS,
-    TAG_TOP_K, TAG_MIN_SCORE, TAG_LABELS
+    TAG_TOP_K, TAG_MIN_SCORE, TAG_LABELS, TAG_DERIVED_RELATIONS
 )
 
 # 配置日志
@@ -388,6 +388,8 @@ def process_image(image):
 def _normalize_tag_results(result, include_fallback=True):
     """规范化标签结果"""
     tags = []
+    label_index = {label['key']: label for label in TAG_LABELS}
+
     for item in result:
         score = float(item.get('score', 0))
         if score < TAG_MIN_SCORE:
@@ -403,6 +405,29 @@ def _normalize_tag_results(result, include_fallback=True):
             'label': matched['label'],
             'score': round(score, 4)
         })
+
+    existing_keys = {tag['key'] for tag in tags}
+    derived_tags = []
+    for tag in list(tags):
+        related_keys = TAG_DERIVED_RELATIONS.get(tag['key'], [])
+        for related_key in related_keys:
+            if related_key in existing_keys:
+                continue
+
+            related_label = label_index.get(related_key)
+            if related_label is None:
+                continue
+
+            derived_score = round(max(TAG_MIN_SCORE, tag['score'] * 0.85), 4)
+            derived_tags.append({
+                'key': related_label['key'],
+                'label': related_label['label'],
+                'score': derived_score,
+                'derived': True
+            })
+            existing_keys.add(related_key)
+
+    tags.extend(derived_tags)
 
     tags.sort(key=lambda item: item['score'], reverse=True)
     tags = tags[:TAG_TOP_K]

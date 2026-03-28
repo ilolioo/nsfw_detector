@@ -10,7 +10,7 @@ services:
       - "3333:3333"
     environment:
       - TZ=Asia/Shanghai
-      - AUTH_TOKEN=your_secret_token_here # API认证Token（不设置则不启用认证）
+      - AUTH_TOKEN=baisiimgbed # API认证Token（不设置则不启用认证）
       # - NSFW_THRESHOLD=0.95 # NSFW检测阈值 (0.0-1.0，默认0.8)
       # - FFMPEG_MAX_FRAMES=30 # FFmpeg处理最大帧数（默认30）
       # - FFMPEG_MAX_TIMEOUT=1800 # FFmpeg处理超时时间（秒，默认1800）

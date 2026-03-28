@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSFW Detector API Docs</title>
+    <style>
+        :root {
+            --bg: #eef4fb;
+            --bg-accent: #f8fbff;
+            --surface: rgba(255, 255, 255, 0.9);
+            --surface-strong: #ffffff;
+            --surface-soft: #f3f8ff;
+            --border: #d6e3f5;
+            --border-strong: #bcd3f1;
+            --text: #1d2a3a;
+            --text-muted: #607086;
+            --text-soft: #7d8ba0;
+            --primary: #2f80ed;
+            --primary-strong: #1f6fd6;
+            --primary-soft: #e9f3ff;
+            --success: #1f9d68;
+            --success-soft: #e8f7f0;
+            --danger: #d84e5f;
+            --danger-soft: #fdecef;
+            --shadow-lg: 0 24px 60px rgba(63, 104, 155, 0.14);
+            --shadow-md: 0 14px 30px rgba(82, 118, 163, 0.12);
+            --shadow-sm: 0 8px 18px rgba(88, 122, 168, 0.08);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 20px;
+            --space-6: 24px;
+            --space-7: 32px;
+            --space-8: 40px;
+            --space-9: 48px;
+            --space-10: 56px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(47, 128, 237, 0.12), transparent 32%),
+                radial-gradient(circle at top right, rgba(79, 172, 254, 0.12), transparent 28%),
+                linear-gradient(180deg, #f8fbff 0%, var(--bg) 48%, #f4f7fb 100%);
+            overflow-x: hidden;
+        }
+
+        .page-shell {
+            width: 100%;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: var(--space-5) var(--space-5) var(--space-8);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(214, 227, 245, 0.9);
+            box-shadow: var(--shadow-sm);
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+        }
+
+        .back-link:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+            color: var(--primary-strong);
+        }
+
+        .lang-switch {
+            display: flex;
+            gap: var(--space-2);
+            padding: var(--space-2);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(214, 227, 245, 0.9);
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(8px);
+        }
+
+        .lang-switch button {
+            border: 0;
+            background: transparent;
+            color: var(--text-muted);
+            padding: 10px 16px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .lang-switch button:hover {
+            background: rgba(47, 128, 237, 0.08);
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .lang-switch button.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(47, 128, 237, 0.28);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+            gap: var(--space-7);
+            align-items: start;
+            margin-bottom: var(--space-8);
+        }
+
+        .hero-copy {
+            padding-top: var(--space-4);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid rgba(214, 227, 245, 0.95);
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: var(--space-5);
+        }
+
+        .hero h1 {
+            margin: 0 0 var(--space-4);
+            font-size: clamp(2.2rem, 4vw, 3.8rem);
+            line-height: 1.03;
+            letter-spacing: -0.04em;
+        }
+
+        .hero p {
+            margin: 0 0 var(--space-6);
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+            max-width: 640px;
+        }
+
+        .feature-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+        }
+
+        .feature-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 12px 16px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid rgba(214, 227, 245, 0.95);
+            color: var(--text);
+            font-size: 0.95rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .feature-badge strong {
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .summary-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius-xl);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(246, 250, 255, 0.96) 100%);
+            border: 1px solid rgba(214, 227, 245, 0.95);
+            box-shadow: var(--shadow-lg);
+            padding: var(--space-6);
+        }
+
+        .summary-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(47, 128, 237, 0.12), transparent 34%);
+            pointer-events: none;
+        }
+
+        .summary-card-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .panel-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: var(--space-4);
+        }
+
+        .summary-card h2 {
+            margin: 0 0 var(--space-4);
+            font-size: 1.6rem;
+            line-height: 1.2;
+        }
+
+        .summary-card p {
+            margin: 0 0 var(--space-5);
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+
+        .mini-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--space-3);
+        }
+
+        .mini-card {
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(214, 227, 245, 0.95);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .mini-card-label {
+            display: block;
+            margin-bottom: var(--space-2);
+            color: var(--text-soft);
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .mini-card-value {
+            font-size: 1.12rem;
+            font-weight: 700;
+            line-height: 1.45;
+        }
+
+        .docs-grid {
+            display: grid;
+            gap: var(--space-6);
+        }
+
+        .doc-section {
+            border-radius: var(--radius-xl);
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(214, 227, 245, 0.95);
+            box-shadow: var(--shadow-md);
+            padding: var(--space-6);
+            backdrop-filter: blur(8px);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--space-4);
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-bottom: var(--space-5);
+        }
+
+        .section-header h2,
+        .section-header h3 {
+            margin: 0 0 var(--space-2);
+        }
+
+        .section-header p {
+            margin: 0;
+            color: var(--text-muted);
+            line-height: 1.65;
+            max-width: 720px;
+        }
+
+        .endpoint-pill,
+        .method-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.92rem;
+            box-shadow: var(--shadow-sm);
+            white-space: nowrap;
+        }
+
+        .endpoint-pill {
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid rgba(214, 227, 245, 0.95);
+            color: var(--text);
+        }
+
+        .method-pill {
+            background: var(--primary-soft);
+            border: 1px solid rgba(175, 208, 245, 0.95);
+            color: var(--primary-strong);
+        }
+
+        .inline-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            margin-bottom: var(--space-5);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-5);
+        }
+
+        .info-card {
+            padding: var(--space-5);
+            border-radius: var(--radius-lg);
+            background: var(--surface-soft);
+            border: 1px solid var(--border);
+        }
+
+        .info-card h3 {
+            margin: 0 0 var(--space-3);
+            font-size: 1rem;
+        }
+
+        .info-card p,
+        .info-card li {
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+
+        .info-card ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .code-block {
+            margin: 0;
+            padding: var(--space-5);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, #f7fbff 0%, #edf5ff 100%);
+            border: 1px solid rgba(188, 211, 241, 0.95);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            color: var(--text);
+            overflow-x: auto;
+            font-size: 0.92rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .code-block + .code-block,
+        .subsection + .subsection {
+            margin-top: var(--space-4);
+        }
+
+        .subsection-title {
+            margin: 0 0 var(--space-3);
+            font-size: 1rem;
+        }
+
+        .note-row {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: var(--space-4);
+        }
+
+        .note-card {
+            padding: var(--space-5);
+            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(214, 227, 245, 0.95);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .note-card h3 {
+            margin: 0 0 var(--space-3);
+            font-size: 1rem;
+        }
+
+        .note-card p {
+            margin: 0;
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+
+        footer {
+            margin-top: var(--space-9);
+            padding: var(--space-6) 0 var(--space-2);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: var(--space-5);
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            color: var(--text-soft);
+        }
+
+        .footer-links a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary-strong);
+        }
+
+        .footer-divider {
+            color: #bed0e7;
+        }
+
+        @media (max-width: 980px) {
+            .hero {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .page-shell {
+                padding: var(--space-4) var(--space-4) var(--space-7);
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .info-grid,
+            .note-row,
+            .mini-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .doc-section,
+            .summary-card {
+                padding: var(--space-5);
+            }
+        }
+
+        @media (max-width: 560px) {
+            .lang-switch {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .lang-switch button {
+                flex: 1;
+                text-align: center;
+            }
+
+            .footer-links {
+                flex-direction: column;
+                gap: var(--space-3);
+            }
+
+            .footer-divider {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-shell">
+        <div class="header">
+            <a class="back-link" href="/">← <span data-i18n="backHome">返回首页</span></a>
+            <div class="lang-switch">
+                <button onclick="changeLang('zh')" class="active">中文</button>
+                <button onclick="changeLang('en')">English</button>
+                <button onclick="changeLang('ja')">日本語</button>
+            </div>
+        </div>
+
+        <main>
+            <section class="hero">
+                <div class="hero-copy">
+                    <div class="eyebrow" data-i18n="eyebrow">接口文档 · 轻量集成说明</div>
+                    <h1 data-i18n="title">在同一套服务中调用 /check 与 /tag</h1>
+                    <p data-i18n="subtitle">本页聚焦现有 HTTP 接口的实际调用方式，覆盖文件上传与服务器本地路径两种模式、可选 Bearer Token 认证，以及代表性的返回结构，方便直接接入审核或标签流程。</p>
+
+                    <div class="feature-badges">
+                        <div class="feature-badge"><strong>POST</strong><span data-i18n="badgeCheck">/check 内容审核</span></div>
+                        <div class="feature-badge"><strong>POST</strong><span data-i18n="badgeTag">/tag 自动标签</span></div>
+                        <div class="feature-badge"><strong>AUTH</strong><span data-i18n="badgeAuth">配置后使用 Bearer Token</span></div>
+                    </div>
+                </div>
+
+                <aside class="summary-card">
+                    <div class="summary-card-content">
+                        <div class="panel-kicker" data-i18n="summaryKicker">Quick Summary</div>
+                        <h2 data-i18n="summaryTitle">接入前先确认这三件事</h2>
+                        <p data-i18n="summaryBody">两个接口都使用 multipart/form-data。你可以上传真实文件，也可以提交服务器本地路径；如果服务端配置了 token，请在请求头中附带 Authorization: Bearer &lt;token&gt;。</p>
+                        <div class="mini-grid">
+                            <div class="mini-card">
+                                <span class="mini-card-label" data-i18n="summaryModeLabel">Request Modes</span>
+                                <div class="mini-card-value" data-i18n="summaryModeValue">file 或 path</div>
+                            </div>
+                            <div class="mini-card">
+                                <span class="mini-card-label" data-i18n="summaryAuthLabel">Auth Header</span>
+                                <div class="mini-card-value">Authorization: Bearer &lt;token&gt;</div>
+                            </div>
+                            <div class="mini-card">
+                                <span class="mini-card-label" data-i18n="summaryContentLabel">Content Type</span>
+                                <div class="mini-card-value">multipart/form-data</div>
+                            </div>
+                            <div class="mini-card">
+                                <span class="mini-card-label" data-i18n="summaryResultLabel">Response Shape</span>
+                                <div class="mini-card-value" data-i18n="summaryResultValue">status + filename + result</div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </section>
+
+            <div class="docs-grid">
+                <section class="doc-section">
+                    <div class="section-header">
+                        <div>
+                            <h2 data-i18n="commonTitle">通用请求约定</h2>
+                            <p data-i18n="commonBody">这两个接口共享相同的请求风格。前端首页使用 file 上传模式，API 也支持直接传入服务端可访问的 path 字段，用于处理已在服务器上的文件。</p>
+                        </div>
+                    </div>
+
+                    <div class="info-grid">
+                        <article class="info-card">
+                            <h3 data-i18n="modeCardTitle">支持的提交模式</h3>
+                            <ul>
+                                <li data-i18n="modeFile">file：使用 multipart/form-data 上传文件内容。</li>
+                                <li data-i18n="modePath">path：提交服务器本地文件路径，不上传二进制内容。</li>
+                            </ul>
+                        </article>
+                        <article class="info-card">
+                            <h3 data-i18n="authCardTitle">鉴权行为</h3>
+                            <p data-i18n="authCardBody">当服务端配置了认证 token 时，请附带 Authorization 请求头，格式为 Bearer &lt;token&gt;。未配置时可省略该请求头。</p>
+                        </article>
+                    </div>
+
+                    <div class="subsection">
+                        <h3 class="subsection-title" data-i18n="authExampleTitle">请求头示例</h3>
+                        <pre class="code-block">Authorization: Bearer &lt;token&gt;</pre>
+                    </div>
+                </section>
+
+                <section class="doc-section">
+                    <div class="section-header">
+                        <div>
+                            <h2 data-i18n="checkTitle">/check · 内容审核</h2>
+                            <p data-i18n="checkBody">返回 normal 与 nsfw 分数，并根据阈值给出最终判定。适合上传前审查、自动化审核与安全开关场景。</p>
+                        </div>
+                        <div class="inline-pills">
+                            <span class="method-pill">POST</span>
+                            <span class="endpoint-pill">/check</span>
+                        </div>
+                    </div>
+
+                    <div class="info-grid">
+                        <article class="info-card">
+                            <h3 data-i18n="requestFieldsTitle">表单字段</h3>
+                            <ul>
+                                <li data-i18n="checkFieldFile">file：上传待检测文件。</li>
+                                <li data-i18n="checkFieldPath">path：服务器本地文件路径。</li>
+                            </ul>
+                        </article>
+                        <article class="info-card">
+                            <h3 data-i18n="checkResponseTitle">代表性返回字段</h3>
+                            <ul>
+                                <li><strong>status</strong> <span data-i18n="statusSuccess">成功时为 success。</span></li>
+                                <li><strong>filename</strong> <span data-i18n="filenameDesc">返回用于分析的文件名。</span></li>
+                                <li><strong>result.normal</strong> / <strong>result.nsfw</strong> <span data-i18n="scoreDesc">对应 normal 与 nsfw 分数。</span></li>
+                            </ul>
+                        </article>
+                    </div>
+
+                    <div class="subsection">
+                        <h3 class="subsection-title" data-i18n="checkCurlFileTitle">使用 file 模式</h3>
+                        <pre class="code-block">curl -X POST \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -F "file=@/path/to/image.jpg" \
+  http://localhost:3333/check</pre>
+                    </div>
+
+                    <div class="subsection">
+                        <h3 class="subsection-title" data-i18n="checkCurlPathTitle">使用 path 模式</h3>
+                        <pre class="code-block">curl -X POST \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -F "path=/path/to/image.jpg" \
+  http://localhost:3333/check</pre>
+                    </div>
+
+                    <div class="subsection">
+                        <h3 class="subsection-title" data-i18n="checkResponseSampleTitle">响应示例</h3>
+                        <pre class="code-block">{
+  "status": "success",
+  "filename": "sample.jpg",
+  "result": {
+    "normal": 0.9731,
+    "nsfw": 0.0269
+  }
+}</pre>
+                    </div>
+                </section>
+
+                <section class="doc-section">
+                    <div class="section-header">
+                        <div>
+                            <h2 data-i18n="tagTitle">/tag · 自动标签</h2>
+                            <p data-i18n="tagBody">为图片或视频返回标签列表，并在可用时附带文件类型与视频分析帧数，适合内容分类、检索增强与素材整理流程。</p>
+                        </div>
+                        <div class="inline-pills">
+                            <span class="method-pill">POST</span>
+                            <span class="endpoint-pill">/tag</span>
+                        </div>
+                    </div>
+
+                    <div class="info-grid">
+                        <article class="info-card">
+                            <h3 data-i18n="tagRequestFieldsTitle">表单字段</h3>
+                            <ul>
+                                <li data-i18n="tagFieldFile">file：上传图片或视频文件。</li>
+                                <li data-i18n="tagFieldPath">path：服务器本地图片或视频路径。</li>
+                            </ul>
+                        </article>
+                        <article class="info-card">
+                            <h3 data-i18n="tagResponseTitle">代表性返回字段</h3>
+                            <ul>
+                                <li><strong>result.type</strong> <span data-i18n="typeDesc">返回文件类型，例如 image 或 video。</span></li>
+                                <li><strong>result.tags</strong> <span data-i18n="tagsDesc">标签数组，包含 key、label、score。</span></li>
+                                <li><strong>result.frames_analyzed</strong> <span data-i18n="framesDesc">视频场景下可返回参与聚合的帧数。</span></li>
+                            </ul>
+                        </article>
+                    </div>
+
+                    <div class="subsection">
+                        <h3 class="subsection-title" data-i18n="tagCurlFileTitle">使用 file 模式</h3>
+                        <pre class="code-block">curl -X POST \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -F "file=@/path/to/video.mp4" \
+  http://localhost:3333/tag</pre>
+                    </div>
+
+                    <div class="subsection">
+                        <h3 class="subsection-title" data-i18n="tagCurlPathTitle">使用 path 模式</h3>
+                        <pre class="code-block">curl -X POST \
+  -H "Authorization: Bearer &lt;token&gt;" \
+  -F "path=/path/to/video.mp4" \
+  http://localhost:3333/tag</pre>
+                    </div>
+
+                    <div class="subsection">
+                        <h3 class="subsection-title" data-i18n="tagResponseSampleTitle">响应示例</h3>
+                        <pre class="code-block">{
+  "status": "success",
+  "filename": "sample.mp4",
+  "result": {
+    "type": "video",
+    "frames_analyzed": 12,
+    "tags": [
+      {"key": "anime", "label": "动漫", "score": 0.9123},
+      {"key": "girl", "label": "少女", "score": 0.8642},
+      {"key": "portrait", "label": "人像", "score": 0.6211}
+    ]
+  }
+}</pre>
+                    </div>
+                </section>
+
+                <section class="doc-section">
+                    <div class="section-header">
+                        <div>
+                            <h2 data-i18n="notesTitle">集成说明</h2>
+                            <p data-i18n="notesBody">这些补充说明与当前页面行为保持一致，可帮助在前端或服务端封装时减少歧义。</p>
+                        </div>
+                    </div>
+
+                    <div class="note-row">
+                        <article class="note-card">
+                            <h3 data-i18n="noteUploadTitle">上传模式</h3>
+                            <p data-i18n="noteUploadBody">首页上传器当前使用 file 模式，并依据所选功能自动切换到 /check 或 /tag。</p>
+                        </article>
+                        <article class="note-card">
+                            <h3 data-i18n="notePathTitle">路径模式</h3>
+                            <p data-i18n="notePathBody">path 适合文件已在服务器本地存在的场景，调用方只需要提交表单字段即可。</p>
+                        </article>
+                        <article class="note-card">
+                            <h3 data-i18n="noteAuthTitle">认证模式</h3>
+                            <p data-i18n="noteAuthBody">Bearer Token 仅在服务端配置后才需要；未启用认证时，请求可不带 Authorization 头。</p>
+                        </article>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer>
+            <div class="footer-links">
+                <a href="/" data-i18n="footerHome">返回首页</a>
+                <span class="footer-divider">|</span>
+                <a href="https://github.com/ilolioo/nsfw_detector" target="_blank">Github</a>
+                <span class="footer-divider">|</span>
+                <a href="https://www.baisi.ru" target="_blank">Power by Baisi</a>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const translations = {
+            zh: {
+                backHome: '返回首页',
+                eyebrow: '接口文档 · 轻量集成说明',
+                title: '在同一套服务中调用 /check 与 /tag',
+                subtitle: '本页聚焦现有 HTTP 接口的实际调用方式，覆盖文件上传与服务器本地路径两种模式、可选 Bearer Token 认证，以及代表性的返回结构，方便直接接入审核或标签流程。',
+                badgeCheck: '/check 内容审核',
+                badgeTag: '/tag 自动标签',
+                badgeAuth: '配置后使用 Bearer Token',
+                summaryKicker: 'Quick Summary',
+                summaryTitle: '接入前先确认这三件事',
+                summaryBody: '两个接口都使用 multipart/form-data。你可以上传真实文件，也可以提交服务器本地路径；如果服务端配置了 token，请在请求头中附带 Authorization: Bearer <token>。',
+                summaryModeLabel: 'Request Modes',
+                summaryModeValue: 'file 或 path',
+                summaryAuthLabel: 'Auth Header',
+                summaryContentLabel: 'Content Type',
+                summaryResultLabel: 'Response Shape',
+                summaryResultValue: 'status + filename + result',
+                commonTitle: '通用请求约定',
+                commonBody: '这两个接口共享相同的请求风格。前端首页使用 file 上传模式，API 也支持直接传入服务端可访问的 path 字段，用于处理已在服务器上的文件。',
+                modeCardTitle: '支持的提交模式',
+                modeFile: 'file：使用 multipart/form-data 上传文件内容。',
+                modePath: 'path：提交服务器本地文件路径，不上传二进制内容。',
+                authCardTitle: '鉴权行为',
+                authCardBody: '当服务端配置了认证 token 时，请附带 Authorization 请求头，格式为 Bearer <token>。未配置时可省略该请求头。',
+                authExampleTitle: '请求头示例',
+                checkTitle: '/check · 内容审核',
+                checkBody: '返回 normal 与 nsfw 分数，并根据阈值给出最终判定。适合上传前审查、自动化审核与安全开关场景。',
+                requestFieldsTitle: '表单字段',
+                checkFieldFile: 'file：上传待检测文件。',
+                checkFieldPath: 'path：服务器本地文件路径。',
+                checkResponseTitle: '代表性返回字段',
+                statusSuccess: '成功时为 success。',
+                filenameDesc: '返回用于分析的文件名。',
+                scoreDesc: '对应 normal 与 nsfw 分数。',
+                checkCurlFileTitle: '使用 file 模式',
+                checkCurlPathTitle: '使用 path 模式',
+                checkResponseSampleTitle: '响应示例',
+                tagTitle: '/tag · 自动标签',
+                tagBody: '为图片或视频返回标签列表，并在可用时附带文件类型与视频分析帧数，适合内容分类、检索增强与素材整理流程。',
+                tagRequestFieldsTitle: '表单字段',
+                tagFieldFile: 'file：上传图片或视频文件。',
+                tagFieldPath: 'path：服务器本地图片或视频路径。',
+                tagResponseTitle: '代表性返回字段',
+                typeDesc: '返回文件类型，例如 image 或 video。',
+                tagsDesc: '标签数组，包含 key、label、score。',
+                framesDesc: '视频场景下可返回参与聚合的帧数。',
+                tagCurlFileTitle: '使用 file 模式',
+                tagCurlPathTitle: '使用 path 模式',
+                tagResponseSampleTitle: '响应示例',
+                notesTitle: '集成说明',
+                notesBody: '这些补充说明与当前页面行为保持一致，可帮助在前端或服务端封装时减少歧义。',
+                noteUploadTitle: '上传模式',
+                noteUploadBody: '首页上传器当前使用 file 模式，并依据所选功能自动切换到 /check 或 /tag。',
+                notePathTitle: '路径模式',
+                notePathBody: 'path 适合文件已在服务器本地存在的场景，调用方只需要提交表单字段即可。',
+                noteAuthTitle: '认证模式',
+                noteAuthBody: 'Bearer Token 仅在服务端配置后才需要；未启用认证时，请求可不带 Authorization 头。',
+                footerHome: '返回首页'
+            },
+            en: {
+                backHome: 'Back to home',
+                eyebrow: 'API documentation · lightweight integration guide',
+                title: 'Call /check and /tag from the same service',
+                subtitle: 'This page focuses on the actual HTTP interface already exposed by the app, including file upload and server-side path modes, optional Bearer token authentication, and representative response shapes for direct integration.',
+                badgeCheck: '/check moderation',
+                badgeTag: '/tag auto tagging',
+                badgeAuth: 'Use Bearer token when configured',
+                summaryKicker: 'Quick Summary',
+                summaryTitle: 'Confirm these three details first',
+                summaryBody: 'Both endpoints use multipart/form-data. You can upload a real file or submit a server-local path; if the service is configured with a token, include Authorization: Bearer <token> in the request headers.',
+                summaryModeLabel: 'Request Modes',
+                summaryModeValue: 'file or path',
+                summaryAuthLabel: 'Auth Header',
+                summaryContentLabel: 'Content Type',
+                summaryResultLabel: 'Response Shape',
+                summaryResultValue: 'status + filename + result',
+                commonTitle: 'Shared request contract',
+                commonBody: 'Both endpoints follow the same request style. The homepage uploader uses file mode, and the API also supports a path field for files that already exist on the server.',
+                modeCardTitle: 'Supported submission modes',
+                modeFile: 'file: upload binary file content with multipart/form-data.',
+                modePath: 'path: submit a server-local file path without uploading binary content.',
+                authCardTitle: 'Authentication behavior',
+                authCardBody: 'When the server is configured with an auth token, send an Authorization header in the format Bearer <token>. If auth is not configured, the header can be omitted.',
+                authExampleTitle: 'Header example',
+                checkTitle: '/check · moderation',
+                checkBody: 'Returns normal and nsfw scores and derives the final review outcome from that result. It is suitable for moderation, pre-upload screening, and automated safety gates.',
+                requestFieldsTitle: 'Form fields',
+                checkFieldFile: 'file: upload the file to inspect.',
+                checkFieldPath: 'path: pass a server-local file path.',
+                checkResponseTitle: 'Representative response fields',
+                statusSuccess: 'The value is success on success.',
+                filenameDesc: 'Returns the filename used for analysis.',
+                scoreDesc: 'Contains the normal and nsfw scores.',
+                checkCurlFileTitle: 'Using file mode',
+                checkCurlPathTitle: 'Using path mode',
+                checkResponseSampleTitle: 'Response example',
+                tagTitle: '/tag · auto tagging',
+                tagBody: 'Returns a tag list for images or video and may include the file type plus analyzed frame count when available, making it suitable for classification, search enrichment, and asset organization.',
+                tagRequestFieldsTitle: 'Form fields',
+                tagFieldFile: 'file: upload an image or video file.',
+                tagFieldPath: 'path: pass a server-local image or video path.',
+                tagResponseTitle: 'Representative response fields',
+                typeDesc: 'Returns the file type, such as image or video.',
+                tagsDesc: 'Array of tags containing key, label, and score.',
+                framesDesc: 'For video requests, may include the number of frames used for aggregation.',
+                tagCurlFileTitle: 'Using file mode',
+                tagCurlPathTitle: 'Using path mode',
+                tagResponseSampleTitle: 'Response example',
+                notesTitle: 'Integration notes',
+                notesBody: 'These notes align with the current UI behavior and help reduce ambiguity when wrapping the API on the frontend or server side.',
+                noteUploadTitle: 'Upload mode',
+                noteUploadBody: 'The homepage uploader currently uses file mode and switches between /check and /tag based on the selected function.',
+                notePathTitle: 'Path mode',
+                notePathBody: 'path is useful when the file already exists on the server and the caller only needs to submit a form field.',
+                noteAuthTitle: 'Auth mode',
+                noteAuthBody: 'Bearer Token is only required when authentication is configured on the server; otherwise the Authorization header is optional.',
+                footerHome: 'Back to home'
+            },
+            ja: {
+                backHome: 'ホームへ戻る',
+                eyebrow: 'API ドキュメント · 軽量連携ガイド',
+                title: '同じサービスから /check と /tag を呼び出す',
+                subtitle: 'このページでは、アプリが現在公開している HTTP インターフェースの実際の使い方をまとめています。file アップロードとサーバーローカル path モード、任意の Bearer Token 認証、代表的なレスポンス構造を確認できます。',
+                badgeCheck: '/check コンテンツ審査',
+                badgeTag: '/tag 自動タグ付け',
+                badgeAuth: '設定時は Bearer Token を使用',
+                summaryKicker: 'Quick Summary',
+                summaryTitle: '最初に確認したい 3 つの要点',
+                summaryBody: '両方のエンドポイントは multipart/form-data を使用します。実ファイルをアップロードすることも、サーバー上のローカル path を送ることもできます。サービスに token が設定されている場合は、Authorization: Bearer <token> をリクエストヘッダーに含めてください。',
+                summaryModeLabel: 'Request Modes',
+                summaryModeValue: 'file または path',
+                summaryAuthLabel: 'Auth Header',
+                summaryContentLabel: 'Content Type',
+                summaryResultLabel: 'Response Shape',
+                summaryResultValue: 'status + filename + result',
+                commonTitle: '共通リクエスト仕様',
+                commonBody: '両エンドポイントは同じリクエストスタイルを共有します。ホームページのアップローダーは file モードを使い、API はサーバー上に既に存在するファイル向けに path フィールドもサポートしています。',
+                modeCardTitle: '対応する送信モード',
+                modeFile: 'file：multipart/form-data でファイル本体をアップロードします。',
+                modePath: 'path：バイナリを送らずにサーバーローカルのファイルパスを送信します。',
+                authCardTitle: '認証の挙動',
+                authCardBody: 'サーバーに認証 token が設定されている場合は、Authorization ヘッダーを Bearer <token> 形式で送信してください。認証が未設定なら、このヘッダーは省略できます。',
+                authExampleTitle: 'ヘッダー例',
+                checkTitle: '/check · コンテンツ審査',
+                checkBody: 'normal と nsfw のスコアを返し、その結果から最終判定を導きます。モデレーション、アップロード前チェック、自動安全ゲートに適しています。',
+                requestFieldsTitle: 'フォームフィールド',
+                checkFieldFile: 'file：検査したいファイルをアップロードします。',
+                checkFieldPath: 'path：サーバーローカルのファイルパスを渡します。',
+                checkResponseTitle: '代表的なレスポンス項目',
+                statusSuccess: '成功時の値は success です。',
+                filenameDesc: '解析に使われたファイル名を返します。',
+                scoreDesc: 'normal と nsfw のスコアを含みます。',
+                checkCurlFileTitle: 'file モードを使う',
+                checkCurlPathTitle: 'path モードを使う',
+                checkResponseSampleTitle: 'レスポンス例',
+                tagTitle: '/tag · 自動タグ付け',
+                tagBody: '画像や動画に対するタグ一覧を返し、利用可能な場合はファイルタイプや解析フレーム数も含みます。分類、検索強化、素材整理に向いています。',
+                tagRequestFieldsTitle: 'フォームフィールド',
+                tagFieldFile: 'file：画像または動画ファイルをアップロードします。',
+                tagFieldPath: 'path：サーバーローカルの画像または動画パスを渡します。',
+                tagResponseTitle: '代表的なレスポンス項目',
+                typeDesc: 'image や video などのファイルタイプを返します。',
+                tagsDesc: 'key・label・score を含むタグ配列です。',
+                framesDesc: '動画リクエストでは、集約に使われたフレーム数が含まれる場合があります。',
+                tagCurlFileTitle: 'file モードを使う',
+                tagCurlPathTitle: 'path モードを使う',
+                tagResponseSampleTitle: 'レスポンス例',
+                notesTitle: '連携メモ',
+                notesBody: 'これらの補足は現在の UI 挙動と揃えてあり、フロントエンドやサーバー側で API をラップする際の曖昧さを減らします。',
+                noteUploadTitle: 'アップロードモード',
+                noteUploadBody: 'ホームページのアップローダーは現在 file モードを使い、選択した機能に応じて /check と /tag を切り替えます。',
+                notePathTitle: 'path モード',
+                notePathBody: 'path はファイルが既にサーバー上にある場合に便利で、呼び出し側はフォーム項目を送るだけで済みます。',
+                noteAuthTitle: '認証モード',
+                noteAuthBody: 'Bearer Token はサーバー側で認証が設定されている場合のみ必要で、未設定なら Authorization ヘッダーは任意です。',
+                footerHome: 'ホームへ戻る'
+            }
+        };
+
+        let currentLang = 'zh';
+
+        function applyTranslations() {
+            document.querySelector('html').setAttribute('lang', currentLang);
+
+            document.querySelectorAll('[data-i18n]').forEach((element) => {
+                const key = element.getAttribute('data-i18n');
+                if (translations[currentLang][key]) {
+                    element.textContent = translations[currentLang][key];
+                }
+            });
+        }
+
+        function changeLang(lang) {
+            currentLang = lang;
+            applyTranslations();
+
+            document.querySelectorAll('.lang-switch button').forEach((button) => {
+                button.classList.remove('active');
+            });
+            document.querySelector(`button[onclick="changeLang('${lang}')"]`).classList.add('active');
+        }
+
+        applyTranslations();
+    </script>
+</body>
+
+</html>

@@ -32,6 +32,9 @@ CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(CURRENT_DIR, 'index.html'), 'r', encoding='utf-8') as f:
     INDEX_HTML = f.read()
 
+with open(os.path.join(CURRENT_DIR, 'api-docs.html'), 'r', encoding='utf-8') as f:
+    API_DOCS_HTML = f.read()
+
 def token_required(f):
     """Token认证装饰器"""
     @wraps(f)
@@ -288,6 +291,12 @@ def tag_file_by_type(file_path, detected_type, original_filename):
 def index():
     """Serve the index.html file"""
     return Response(INDEX_HTML, mimetype='text/html')
+
+
+@app.route('/api-docs')
+def api_docs():
+    """Serve the API documentation page"""
+    return Response(API_DOCS_HTML, mimetype='text/html')
 
 @app.route('/check', methods=['POST'])
 @token_required

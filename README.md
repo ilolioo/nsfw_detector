@@ -12,7 +12,7 @@
 这是一个 NSFW 内容检测器，它基于 [Falconsai/nsfw_image_detection](https://huggingface.co/Falconsai/nsfw_image_detection) 。
 模型: google/vit-base-patch16-224-in21k
 
-现在同时支持图片、视频自动标签分类接口，可输出如动漫、风景、少女、城市、动物等自动生成标签。
+现在同时支持图片、视频自动标签分类接口，可输出如动漫、风景、少女、城市、动物，以及 Logo、图标、海报、界面、截图、商品图等自动生成标签，并会按识别结果自动补充部分高相关标签。
 
 相比其它常见的 NSFW 检测器，这个检测器的优势在于：
 
@@ -76,7 +76,13 @@ docker run -d -p 3333:3333 --name nsfw-detector ilolioo/nsfw_detector:latest
 
 访问地址：[http://localhost:3333](http://localhost:3333)
 
+API 文档页面：[http://localhost:3333/api-docs](http://localhost:3333/api-docs)
+
+首页已内置 API 文档入口，可直接跳转查看 `/check` 与 `/tag` 的请求参数、鉴权说明和响应示例。
+
 ### 使用 API 进行内容检查
+
+如已配置 `auth_token`，请求时请在 Header 中携带：`Authorization: Bearer <token>`
 
 ```bash
 # 检测
@@ -114,6 +120,8 @@ curl -X POST -F "path=/path/to/video.mp4" http://localhost:3333/tag
 ```
 
 视频返回会额外包含 `frames_analyzed` 字段，表示参与聚合分类的视频帧数量。
+
+部分标签会在解析时自动补充关联标签，例如识别到 `logo` 时可能同时补充 `图标`、`品牌元素`，识别到 `anime` 时可能补充 `插画`、`卡通`。
 
 ### 自动标签分类相关环境变量
 

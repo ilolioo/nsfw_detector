@@ -156,6 +156,70 @@
             margin-bottom: var(--space-7);
         }
 
+        .docs-entry {
+            display: flex;
+            margin-bottom: var(--space-7);
+        }
+
+        .docs-link {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-3);
+            padding: 14px 18px;
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(239, 247, 255, 0.94) 100%);
+            border: 1px solid rgba(188, 211, 241, 0.95);
+            box-shadow: var(--shadow-sm);
+            color: inherit;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            max-width: 420px;
+        }
+
+        .docs-link:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--primary);
+        }
+
+        .docs-link-icon {
+            width: 42px;
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-size: 20px;
+            flex: 0 0 auto;
+        }
+
+        .docs-link-copy {
+            display: grid;
+            gap: 4px;
+        }
+
+        .docs-link-label {
+            color: var(--primary);
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .docs-link-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .docs-link-body {
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
         .feature-badge {
             display: inline-flex;
             align-items: center;
@@ -691,6 +755,17 @@
                     <div class="feature-badge"><strong>03</strong><span data-i18n="badgePrivacy">可选 Token / 本地隐私</span></div>
                 </div>
 
+                <div class="docs-entry">
+                    <a class="docs-link" href="/api-docs">
+                        <span class="docs-link-icon">↗</span>
+                        <span class="docs-link-copy">
+                            <span class="docs-link-label" data-i18n="docsEntryLabel">API Docs</span>
+                            <span class="docs-link-title" data-i18n="docsEntryTitle">查看集成文档</span>
+                            <span class="docs-link-body" data-i18n="docsEntryBody">包含 /check 与 /tag 的请求方式、鉴权头和响应示例，适合直接对接。</span>
+                        </span>
+                    </a>
+                </div>
+
                 <div class="capabilities">
                     <article class="capability-card">
                         <div class="capability-icon">🛡️</div>
@@ -771,9 +846,9 @@
 
         <footer>
             <div class="footer-links">
-                <a href="https://github.com/tmplink/nsfw_detector" target="_blank">Github</a>
+                <a href="https://github.com/ilolioo/nsfw_detector" target="_blank">Github</a>
                 <span class="footer-divider">|</span>
-                <a href="https://www.vx.link" target="_blank">Power by VnetLink</a>
+                <a href="https://www.baisi.ru" target="_blank">Power by Baisi</a>
             </div>
         </footer>
     </div>
@@ -787,6 +862,9 @@
                 badgeSafety: 'NSFW 安全检查',
                 badgeTagging: '自动标签分类',
                 badgePrivacy: '可选 Token / 本地隐私',
+                docsEntryLabel: 'API Docs',
+                docsEntryTitle: '查看集成文档',
+                docsEntryBody: '包含 /check 与 /tag 的请求方式、鉴权头和响应示例，适合直接对接。',
                 capabilitySafetyTitle: 'NSFW 检测',
                 capabilitySafetyBody: '输出 normal / nsfw 分数与最终状态，适合内容审核、上传前校验和自动化流程。',
                 capabilityTagTitle: '自动标签',
@@ -838,6 +916,9 @@
                 badgeSafety: 'NSFW safety check',
                 badgeTagging: 'Auto tagging',
                 badgePrivacy: 'Optional token / local privacy',
+                docsEntryLabel: 'API Docs',
+                docsEntryTitle: 'Open the integration docs',
+                docsEntryBody: 'Includes request modes, auth header behavior, and response examples for /check and /tag.',
                 capabilitySafetyTitle: 'NSFW detection',
                 capabilitySafetyBody: 'Return normal / nsfw scores and a clear review status for moderation, pre-upload checks, and automation pipelines.',
                 capabilityTagTitle: 'Auto tagging',
@@ -889,6 +970,9 @@
                 badgeSafety: 'NSFW安全チェック',
                 badgeTagging: '自動タグ分類',
                 badgePrivacy: '任意トークン / ローカルプライバシー',
+                docsEntryLabel: 'API Docs',
+                docsEntryTitle: '連携ドキュメントを見る',
+                docsEntryBody: '/check と /tag のリクエスト方式、認証ヘッダー、レスポンス例をまとめています。',
                 capabilitySafetyTitle: 'NSFW検出',
                 capabilitySafetyBody: 'normal / nsfw のスコアと判定結果を返し、モデレーションやアップロード前チェック、自動処理に適しています。',
                 capabilityTagTitle: '自動タグ付け',
