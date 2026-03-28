@@ -6,349 +6,1096 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NSFW Detector</title>
     <style>
+        :root {
+            --bg: #eef4fb;
+            --bg-accent: #f8fbff;
+            --surface: rgba(255, 255, 255, 0.9);
+            --surface-strong: #ffffff;
+            --surface-soft: #f3f8ff;
+            --border: #d6e3f5;
+            --border-strong: #bcd3f1;
+            --text: #1d2a3a;
+            --text-muted: #607086;
+            --text-soft: #7d8ba0;
+            --primary: #2f80ed;
+            --primary-strong: #1f6fd6;
+            --primary-soft: #e9f3ff;
+            --success: #1f9d68;
+            --success-soft: #e8f7f0;
+            --danger: #d84e5f;
+            --danger-soft: #fdecef;
+            --shadow-lg: 0 24px 60px rgba(63, 104, 155, 0.14);
+            --shadow-md: 0 14px 30px rgba(82, 118, 163, 0.12);
+            --shadow-sm: 0 8px 18px rgba(88, 122, 168, 0.08);
+            --radius-xl: 28px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 20px;
+            --space-6: 24px;
+            --space-7: 32px;
+            --space-8: 40px;
+            --space-9: 48px;
+            --space-10: 56px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            font-family: system-ui, -apple-system, sans-serif;
-            background: #f5f5f5;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(47, 128, 237, 0.12), transparent 32%),
+                radial-gradient(circle at top right, rgba(79, 172, 254, 0.12), transparent 28%),
+                linear-gradient(180deg, #f8fbff 0%, var(--bg) 48%, #f4f7fb 100%);
             overflow-x: hidden;
         }
 
+        .page-shell {
+            width: 100%;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: var(--space-5) var(--space-5) var(--space-8);
+        }
+
         .header {
-            padding: 15px 20px;
-            background: rgba(255, 255, 255, 0.9);
-            text-align: right;
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: var(--space-6);
         }
 
         .lang-switch {
             display: flex;
-            gap: 10px;
-            justify-content: flex-end;
+            gap: var(--space-2);
+            padding: var(--space-2);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(214, 227, 245, 0.9);
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(8px);
         }
 
         .lang-switch button {
-            background: none;
-            border: 1px solid #e0e0e0;
-            color: #666;
-            padding: 6px 12px;
-            border-radius: 16px;
+            border: 0;
+            background: transparent;
+            color: var(--text-muted);
+            padding: 10px 16px;
+            border-radius: 999px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
             font-size: 14px;
+            line-height: 1;
         }
 
         .lang-switch button:hover {
-            background: #f5f5f5;
-            border-color: #ccc;
+            background: rgba(47, 128, 237, 0.08);
+            color: var(--primary);
+            transform: translateY(-1px);
         }
 
         .lang-switch button.active {
-            background: #2196F3;
-            color: white;
-            border-color: #2196F3;
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(47, 128, 237, 0.28);
         }
 
-        .main-content {
-            flex: 1;
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+            gap: var(--space-7);
+            align-items: start;
+        }
+
+        .hero-copy {
+            padding-top: var(--space-4);
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid rgba(214, 227, 245, 0.95);
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: var(--space-5);
+        }
+
+        .hero h1 {
+            margin: 0 0 var(--space-4);
+            font-size: clamp(2.3rem, 4vw, 4rem);
+            line-height: 1.02;
+            letter-spacing: -0.04em;
+        }
+
+        .hero p {
+            margin: 0 0 var(--space-6);
+            font-size: 1.06rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+            max-width: 620px;
+        }
+
+        .feature-badges {
             display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            margin-bottom: var(--space-7);
+        }
+
+        .feature-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 12px 16px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid rgba(214, 227, 245, 0.95);
+            color: var(--text);
+            font-size: 0.95rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .feature-badge strong {
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .capabilities {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--space-4);
+        }
+
+        .capability-card {
+            padding: var(--space-5);
+            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(214, 227, 245, 0.95);
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(8px);
+        }
+
+        .capability-icon {
+            width: 42px;
+            height: 42px;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            margin: 20px 0;
+            border-radius: 14px;
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-size: 20px;
+            margin-bottom: var(--space-4);
         }
 
-        .container {
-            width: 100%;
-            max-width: 600px;
-            text-align: center;
+        .capability-card h3 {
+            margin: 0 0 var(--space-2);
+            font-size: 1.05rem;
         }
 
-        h1 {
-            margin: 0 0 10px 0;
-            color: #333;
+        .capability-card p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.65;
         }
 
-        h2 {
-            margin: 0 0 30px 0;
-            color: #666;
-            font-weight: normal;
-            font-size: 1.1em;
+        .action-panel {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--radius-xl);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(246, 250, 255, 0.96) 100%);
+            border: 1px solid rgba(214, 227, 245, 0.95);
+            box-shadow: var(--shadow-lg);
+            padding: var(--space-6);
+        }
+
+        .action-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(47, 128, 237, 0.12), transparent 34%);
+            pointer-events: none;
+        }
+
+        .panel-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .panel-header {
+            margin-bottom: var(--space-5);
+        }
+
+        .panel-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: var(--space-4);
+        }
+
+        .panel-header h2 {
+            margin: 0 0 var(--space-2);
+            font-size: 1.7rem;
+            line-height: 1.2;
+        }
+
+        .panel-header p {
+            margin: 0;
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+
+        .mode-switch {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--space-2);
+            padding: var(--space-2);
+            border-radius: var(--radius-md);
+            background: var(--surface-soft);
+            border: 1px solid var(--border);
+            margin-bottom: var(--space-5);
+        }
+
+        .mode-option {
+            border: 0;
+            background: transparent;
+            border-radius: 12px;
+            padding: 14px 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+            color: var(--text-muted);
+        }
+
+        .mode-option:hover {
+            background: rgba(47, 128, 237, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .mode-option.active {
+            background: var(--surface-strong);
+            color: var(--text);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .mode-option strong {
+            display: block;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .mode-option span {
+            display: block;
+            font-size: 0.88rem;
+            line-height: 1.5;
         }
 
         .upload-zone {
-            width: 300px;
-            height: 200px;
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            position: relative;
+            border: 2px dashed var(--border-strong);
+            border-radius: var(--radius-lg);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(240, 247, 255, 0.92) 100%);
+            padding: var(--space-7) var(--space-5);
+            text-align: center;
             cursor: pointer;
-            transition: border-color 0.3s;
-            background: white;
-            padding: 20px;
-            margin: 0 auto;
+            transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
 
         .upload-zone:hover {
-            border-color: #666;
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
         .upload-zone.dragover {
-            border-color: #2196F3;
-            background: #e3f2fd;
+            border-color: var(--primary);
+            background: linear-gradient(180deg, rgba(233, 243, 255, 0.98) 0%, rgba(245, 250, 255, 0.98) 100%);
+            box-shadow: var(--shadow-md);
+        }
+
+        .upload-zone.is-uploading {
+            cursor: progress;
+        }
+
+        .upload-icon {
+            width: 66px;
+            height: 66px;
+            margin: 0 auto var(--space-4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            background: var(--primary-soft);
+            color: var(--primary);
+            font-size: 30px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        }
+
+        .upload-title {
+            margin: 0 0 var(--space-2);
+            font-size: 1.12rem;
+            font-weight: 700;
+        }
+
+        .upload-subtitle {
+            margin: 0;
+            color: var(--text-muted);
+            line-height: 1.6;
         }
 
         #fileInput {
             display: none;
         }
 
+        .meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            justify-content: center;
+            margin-top: var(--space-5);
+        }
+
+        .meta-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 10px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.84);
+            border: 1px solid var(--border);
+            color: var(--text-soft);
+            font-size: 0.88rem;
+        }
+
+        .token-section {
+            margin-top: var(--space-5);
+        }
+
+        .token-label {
+            display: block;
+            margin-bottom: var(--space-2);
+            color: var(--text-muted);
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        .token-section input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.96);
+            font-size: 14px;
+            color: var(--text);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .token-section input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.12);
+        }
+
+        .privacy-note {
+            margin-top: var(--space-4);
+            color: var(--text-soft);
+            font-size: 0.9rem;
+            line-height: 1.65;
+        }
+
+        .progress-group {
+            margin-top: var(--space-5);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            gap: var(--space-3);
+            align-items: center;
+            margin-bottom: var(--space-2);
+            font-size: 0.92rem;
+            color: var(--text-muted);
+        }
+
         .progress-bar {
             width: 100%;
-            height: 20px;
-            background: #eee;
-            border-radius: 10px;
-            margin-top: 10px;
+            height: 12px;
+            border-radius: 999px;
+            background: rgba(192, 211, 235, 0.42);
+            overflow: hidden;
             display: none;
         }
 
         .progress-bar-fill {
             height: 100%;
-            background: #2196F3;
-            border-radius: 10px;
             width: 0%;
-            transition: width 0.3s;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--primary) 0%, #55adff 100%);
+            transition: width 0.2s ease;
         }
 
-        .result {
-            margin-top: 15px;
+        .result-panel {
+            margin-top: var(--space-5);
+            padding: var(--space-5);
+            border-radius: var(--radius-lg);
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid var(--border);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            min-height: 150px;
+        }
+
+        .result-empty {
+            color: var(--text-soft);
             text-align: center;
-            font-weight: bold;
+            line-height: 1.7;
+            padding: var(--space-5) 0;
         }
 
-        .error {
-            color: #f44336;
+        .result-status {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 10px 14px;
+            border-radius: 999px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: var(--space-4);
         }
 
-        .normal {
-            color: #4caf50;
+        .result-status.normal {
+            color: var(--success);
+            background: var(--success-soft);
+        }
+
+        .result-status.error {
+            color: var(--danger);
+            background: var(--danger-soft);
+        }
+
+        .result-status.info {
+            color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--space-3);
+        }
+
+        .result-card {
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+            background: var(--surface-soft);
+            border: 1px solid var(--border);
+        }
+
+        .result-card-label {
+            display: block;
+            margin-bottom: var(--space-2);
+            color: var(--text-soft);
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .result-card-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--text);
+        }
+
+        .result-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+
+        .result-meta-item {
+            padding: 10px 12px;
+            border-radius: 999px;
+            background: var(--surface-soft);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: var(--primary-soft);
+            border: 1px solid rgba(175, 208, 245, 0.95);
+            color: var(--primary-strong);
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .tag-chip-score {
+            color: var(--text-muted);
+            font-weight: 600;
         }
 
         footer {
-            background: #fff;
-            padding: 20px;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            margin-top: var(--space-9);
+            padding: var(--space-6) 0 var(--space-2);
         }
 
         .footer-links {
             display: flex;
-            gap: 30px;
+            gap: var(--space-5);
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
+            color: var(--text-soft);
         }
 
         .footer-links a {
-            color: #2196F3;
+            color: var(--primary);
             text-decoration: none;
-            transition: color 0.3s;
+            transition: color 0.2s ease;
         }
 
         .footer-links a:hover {
-            color: #1976D2;
+            color: var(--primary-strong);
         }
 
         .footer-divider {
-            color: #ccc;
+            color: #bed0e7;
         }
 
-        .hint {
-            color: #666;
-            font-size: 0.9em;
-            margin-top: 10px;
-            text-align: center;
-        }
-
-        .token-section {
-            margin-top: 15px;
-            text-align: center;
-        }
-
-        .token-section input {
-            width: 200px;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-        }
-
-        .token-section input:focus {
-            outline: none;
-            border-color: #2196F3;
-        }
-
-        .token-section input::placeholder {
-            color: #999;
-        }
-
-        .scores {
-            margin-top: 10px;
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        @media (max-width: 600px) {
-            .header {
-                text-align: center;
+        @media (max-width: 980px) {
+            .hero {
+                grid-template-columns: 1fr;
             }
 
-            .lang-switch {
+            .hero-copy {
+                padding-top: 0;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .page-shell {
+                padding: var(--space-4) var(--space-4) var(--space-7);
+            }
+
+            .header {
                 justify-content: center;
             }
 
-            .main-content {
-                margin: 10px 0;
+            .capabilities,
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-panel {
+                padding: var(--space-5);
+            }
+        }
+
+        @media (max-width: 560px) {
+            .lang-switch {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .lang-switch button {
+                flex: 1;
+                text-align: center;
+            }
+
+            .mode-switch {
+                grid-template-columns: 1fr;
+            }
+
+            .upload-zone {
+                padding: var(--space-6) var(--space-4);
+            }
+
+            .panel-header h2 {
+                font-size: 1.4rem;
+            }
+
+            .hero h1 {
+                font-size: 2.1rem;
             }
 
             .footer-links {
                 flex-direction: column;
-                gap: 15px;
+                gap: var(--space-3);
             }
 
             .footer-divider {
                 display: none;
-            }
-
-            .upload-zone {
-                width: 100%;
-                max-width: 280px;
-                height: 180px;
-            }
-
-            h1 {
-                font-size: 1.5em;
-            }
-
-            h2 {
-                font-size: 1em;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="header">
-        <div class="lang-switch">
-            <button onclick="changeLang('zh')" class="active">中文</button>
-            <button onclick="changeLang('en')">English</button>
-            <button onclick="changeLang('ja')">日本語</button>
+    <div class="page-shell">
+        <div class="header">
+            <div class="lang-switch">
+                <button onclick="changeLang('zh')" class="active">中文</button>
+                <button onclick="changeLang('en')">English</button>
+                <button onclick="changeLang('ja')">日本語</button>
+            </div>
         </div>
-    </div>
 
-    <div class="main-content">
-        <div class="container">
-            <h1>NSFW 文件检测</h1>
-            <h2>支持图像，PDF，视频文件。</h2>
-            <div class="upload-zone" id="dropZone">
-                <div id="dropText">点击或拖拽文件到此处上传</div>
-                <input type="file" id="fileInput">
-                <div class="progress-bar" id="progressBar">
-                    <div class="progress-bar-fill" id="progressBarFill"></div>
+        <main class="hero">
+            <section class="hero-copy">
+                <div class="eyebrow" data-i18n="eyebrow">轻量本地部署 · 内容审核工作台</div>
+                <h1 data-i18n="title">让 NSFW 检测与自动标签一步到位</h1>
+                <p data-i18n="subtitle">
+                    单文件首页，清晰支持安全检查与自动标签两种模式，覆盖图片、PDF、视频、压缩包与 Office 文档，适合轻量集成与私有部署。
+                </p>
+
+                <div class="feature-badges">
+                    <div class="feature-badge"><strong>01</strong><span data-i18n="badgeSafety">NSFW 安全检查</span></div>
+                    <div class="feature-badge"><strong>02</strong><span data-i18n="badgeTagging">自动标签分类</span></div>
+                    <div class="feature-badge"><strong>03</strong><span data-i18n="badgePrivacy">可选 Token / 本地隐私</span></div>
                 </div>
-                <div class="result" id="result"></div>
-                <div class="scores" id="scores"></div>
-            </div>
-            <div class="hint">您上传的文件不会被保留，分析结束立刻删除</div>
-            <div class="token-section">
-                <input type="text" id="tokenInput" placeholder="API Token（可选）">
-            </div>
-        </div>
-    </div>
 
-    <footer>
-        <div class="footer-links">
-            <a href="https://github.com/tmplink/nsfw_detector" target="_blank">Github</a>
-            <span class="footer-divider">|</span>
-            <a href="https://www.vx.link" target="_blank">Power by VnetLink</a>
-        </div>
-    </footer>
+                <div class="capabilities">
+                    <article class="capability-card">
+                        <div class="capability-icon">🛡️</div>
+                        <h3 data-i18n="capabilitySafetyTitle">NSFW 检测</h3>
+                        <p data-i18n="capabilitySafetyBody">输出 normal / nsfw 分数与最终状态，适合内容审核、上传前校验和自动化流程。</p>
+                    </article>
+                    <article class="capability-card">
+                        <div class="capability-icon">🏷️</div>
+                        <h3 data-i18n="capabilityTagTitle">自动标签</h3>
+                        <p data-i18n="capabilityTagBody">为图片和视频返回高相关标签，帮助快速分类动漫、风景、人物、城市或动物等内容。</p>
+                    </article>
+                    <article class="capability-card">
+                        <div class="capability-icon">📦</div>
+                        <h3 data-i18n="capabilityFileTitle">广泛文件支持</h3>
+                        <p data-i18n="capabilityFileBody">支持 image、PDF、video、archive、doc、docx，保持一个统一上传入口。</p>
+                    </article>
+                    <article class="capability-card">
+                        <div class="capability-icon">🔒</div>
+                        <h3 data-i18n="capabilityPrivacyTitle">鉴权与隐私</h3>
+                        <p data-i18n="capabilityPrivacyBody">支持可选 Bearer Token 认证，适合本地部署与私有网络场景，不额外引入复杂前端依赖。</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="action-panel">
+                <div class="panel-content">
+                    <div class="panel-header">
+                        <div class="panel-kicker" data-i18n="panelKicker">Unified Upload</div>
+                        <h2 data-i18n="panelTitle">上传一次，在两种模式间切换</h2>
+                        <p data-i18n="panelSubtitle">默认使用 Safety Check，切换到 Auto Tagging 后会自动将同一上传流程路由到 /tag。</p>
+                    </div>
+
+                    <div class="mode-switch" role="tablist" aria-label="Mode switch">
+                        <button class="mode-option active" id="modeCheck" type="button" onclick="setMode('check')">
+                            <strong data-i18n="modeCheckTitle">Safety Check</strong>
+                            <span data-i18n="modeCheckDesc">输出 NSFW / normal 分数与审核状态</span>
+                        </button>
+                        <button class="mode-option" id="modeTag" type="button" onclick="setMode('tag')">
+                            <strong data-i18n="modeTagTitle">Auto Tagging</strong>
+                            <span data-i18n="modeTagDesc">输出标签列表，并在可用时显示类型与分析帧数</span>
+                        </button>
+                    </div>
+
+                    <div class="upload-zone" id="dropZone">
+                        <div class="upload-icon">⬆</div>
+                        <div class="upload-title" id="dropText">点击或拖拽文件到此处上传</div>
+                        <p class="upload-subtitle" id="dropSubtext">当前模式：Safety Check。共享上传入口会根据模式自动切换到 /check 或 /tag。</p>
+                        <input type="file" id="fileInput">
+                        <div class="meta-row">
+                            <div class="meta-pill" data-i18n="fileSupportPill">支持 image / PDF / video / archive / doc / docx</div>
+                            <div class="meta-pill" id="modeHint">当前模式：Safety Check → /check</div>
+                        </div>
+                    </div>
+
+                    <div class="token-section">
+                        <label class="token-label" for="tokenInput" data-i18n="tokenLabel">可选 API Token</label>
+                        <input type="text" id="tokenInput" placeholder="API Token（可选）">
+                        <div class="privacy-note" data-i18n="privacy">您上传的文件不会被保留，分析结束立刻删除，适合本地或私有部署。</div>
+                    </div>
+
+                    <div class="progress-group">
+                        <div class="progress-header">
+                            <span id="progressText" data-i18n="progressIdle">等待上传</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                        <div class="progress-bar" id="progressBar">
+                            <div class="progress-bar-fill" id="progressBarFill"></div>
+                        </div>
+                    </div>
+
+                    <div class="result-panel" id="resultPanel">
+                        <div class="result-empty" id="resultEmpty" data-i18n="resultEmpty">结果将在这里显示：安全检查展示状态与分数，自动标签展示标签与文件类型信息。</div>
+                        <div id="resultContent"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-links">
+                <a href="https://github.com/tmplink/nsfw_detector" target="_blank">Github</a>
+                <span class="footer-divider">|</span>
+                <a href="https://www.vx.link" target="_blank">Power by VnetLink</a>
+            </div>
+        </footer>
+    </div>
 
     <script>
         const translations = {
             zh: {
-                title: 'NSFW 文件检测',
-                subtitle: '支持图像，PDF，视频文件，以及压缩包',
+                eyebrow: '轻量本地部署 · 内容审核工作台',
+                title: '让 NSFW 检测与自动标签一步到位',
+                subtitle: '单文件首页，清晰支持安全检查与自动标签两种模式，覆盖图片、PDF、视频、压缩包与 Office 文档，适合轻量集成与私有部署。',
+                badgeSafety: 'NSFW 安全检查',
+                badgeTagging: '自动标签分类',
+                badgePrivacy: '可选 Token / 本地隐私',
+                capabilitySafetyTitle: 'NSFW 检测',
+                capabilitySafetyBody: '输出 normal / nsfw 分数与最终状态，适合内容审核、上传前校验和自动化流程。',
+                capabilityTagTitle: '自动标签',
+                capabilityTagBody: '为图片和视频返回高相关标签，帮助快速分类动漫、风景、人物、城市或动物等内容。',
+                capabilityFileTitle: '广泛文件支持',
+                capabilityFileBody: '支持 image、PDF、video、archive、doc、docx，保持一个统一上传入口。',
+                capabilityPrivacyTitle: '鉴权与隐私',
+                capabilityPrivacyBody: '支持可选 Bearer Token 认证，适合本地部署与私有网络场景，不额外引入复杂前端依赖。',
+                panelKicker: '统一上传面板',
+                panelTitle: '上传一次，在两种模式间切换',
+                panelSubtitle: '默认使用 Safety Check，切换到 Auto Tagging 后会自动将同一上传流程路由到 /tag。',
+                modeCheckTitle: 'Safety Check',
+                modeCheckDesc: '输出 NSFW / normal 分数与审核状态',
+                modeTagTitle: 'Auto Tagging',
+                modeTagDesc: '输出标签列表，并在可用时显示类型与分析帧数',
                 dropText: '点击或拖拽文件到此处上传',
-                normal: '正常文件',
-                nsfw: 'NSFW!',
-                error: '无法处理的文件',
+                dropSubtextCheck: '当前模式：Safety Check。共享上传入口会根据模式自动切换到 /check。',
+                dropSubtextTag: '当前模式：Auto Tagging。共享上传入口会根据模式自动切换到 /tag。',
+                fileSupportPill: '支持 image / PDF / video / archive / doc / docx',
+                modeHintCheck: '当前模式：Safety Check → /check',
+                modeHintTag: '当前模式：Auto Tagging → /tag',
+                tokenLabel: '可选 API Token',
+                tokenPlaceholder: 'API Token（可选）',
+                privacy: '您上传的文件不会被保留，分析结束立刻删除，适合本地或私有部署。',
+                progressIdle: '等待上传',
+                uploading: '正在上传 {filename}',
+                processingCheck: '正在执行安全检查...',
+                processingTag: '正在生成自动标签...',
                 uploadError: '上传失败',
                 parseError: '解析响应失败',
-                processing: '正在处理数据...',
-                privacy: '您上传的文件不会被保留，分析结束立刻删除',
-                scores: '评分 - NSFW: {nsfw}, Normal: {normal}',
-                tokenPlaceholder: 'API Token（可选）'
+                resultEmpty: '结果将在这里显示：安全检查展示状态与分数，自动标签展示标签与文件类型信息。',
+                normal: '正常文件',
+                nsfw: '检测到 NSFW',
+                reviewStatus: '审核状态',
+                nsfwScore: 'NSFW 分数',
+                normalScore: 'Normal 分数',
+                uploadSuccess: '分析完成',
+                taggingSuccess: '标签生成完成',
+                taggingEmpty: '未返回有效标签',
+                resultType: '文件类型',
+                framesAnalyzed: '分析帧数',
+                tagConfidence: '置信度',
+                unknownType: '未知类型'
             },
             en: {
-                title: 'NSFW File Detection',
-                subtitle: 'Supports images, PDFs, video files, and compressed files',
-                dropText: 'Click or drag file here to upload',
-                normal: 'Normal File',
-                nsfw: 'NSFW!',
-                error: 'Unable to process file',
+                eyebrow: 'Lightweight local deployment · content review workspace',
+                title: 'Handle NSFW screening and auto tagging in one flow',
+                subtitle: 'A polished single-file homepage with two clear modes—Safety Check and Auto Tagging—covering images, PDFs, video, archives, and Office documents for lightweight private deployments.',
+                badgeSafety: 'NSFW safety check',
+                badgeTagging: 'Auto tagging',
+                badgePrivacy: 'Optional token / local privacy',
+                capabilitySafetyTitle: 'NSFW detection',
+                capabilitySafetyBody: 'Return normal / nsfw scores and a clear review status for moderation, pre-upload checks, and automation pipelines.',
+                capabilityTagTitle: 'Auto tagging',
+                capabilityTagBody: 'Return high-signal tags for images and video to quickly classify anime, landscape, people, city, animals, and more.',
+                capabilityFileTitle: 'Broad file support',
+                capabilityFileBody: 'Supports image, PDF, video, archive, doc, and docx through one unified upload entry point.',
+                capabilityPrivacyTitle: 'Auth and privacy',
+                capabilityPrivacyBody: 'Keeps optional Bearer token authentication for local or private deployments without adding heavy frontend dependencies.',
+                panelKicker: 'Unified upload panel',
+                panelTitle: 'Upload once and switch between two modes',
+                panelSubtitle: 'Safety Check remains the default mode, and switching to Auto Tagging routes the same upload flow to /tag automatically.',
+                modeCheckTitle: 'Safety Check',
+                modeCheckDesc: 'Show NSFW / normal scores and a moderation status',
+                modeTagTitle: 'Auto Tagging',
+                modeTagDesc: 'Show tags and include type / frames analyzed when available',
+                dropText: 'Click or drag a file here to upload',
+                dropSubtextCheck: 'Current mode: Safety Check. The shared uploader will route to /check.',
+                dropSubtextTag: 'Current mode: Auto Tagging. The shared uploader will route to /tag.',
+                fileSupportPill: 'Supports image / PDF / video / archive / doc / docx',
+                modeHintCheck: 'Current mode: Safety Check → /check',
+                modeHintTag: 'Current mode: Auto Tagging → /tag',
+                tokenLabel: 'Optional API token',
+                tokenPlaceholder: 'API Token (Optional)',
+                privacy: 'Uploaded files are not retained and are deleted immediately after analysis, making the app suitable for local or private deployment.',
+                progressIdle: 'Waiting for upload',
+                uploading: 'Uploading {filename}',
+                processingCheck: 'Running safety check...',
+                processingTag: 'Generating auto tags...',
                 uploadError: 'Upload failed',
                 parseError: 'Failed to parse response',
-                processing: 'Processing data...',
-                privacy: 'Your uploaded files will not be retained and will be deleted immediately after analysis',
-                scores: 'Scores - NSFW: {nsfw}, Normal: {normal}',
-                tokenPlaceholder: 'API Token (Optional)'
+                resultEmpty: 'Results appear here: safety mode shows status and scores, while tagging mode shows tags plus file metadata.',
+                normal: 'Normal file',
+                nsfw: 'NSFW detected',
+                reviewStatus: 'Review status',
+                nsfwScore: 'NSFW score',
+                normalScore: 'Normal score',
+                uploadSuccess: 'Analysis complete',
+                taggingSuccess: 'Tags generated',
+                taggingEmpty: 'No valid tags returned',
+                resultType: 'Type',
+                framesAnalyzed: 'Frames analyzed',
+                tagConfidence: 'Confidence',
+                unknownType: 'Unknown type'
             },
             ja: {
-                title: 'NSFWファイル検出',
-                subtitle: '画像、PDF、動画ファイル、圧縮ファイルに対応',
-                dropText: 'ここをクリックまたはファイルをドラッグしてアップロード',
-                normal: '正常なファイル',
-                nsfw: 'NSFW!',
-                error: '処理できないファイル',
+                eyebrow: '軽量ローカル展開 · コンテンツ審査ワークスペース',
+                title: 'NSFW検出と自動タグ付けを1つの流れで',
+                subtitle: '単一ファイルの軽量ホームページで Safety Check と Auto Tagging の2モードを明確に表示し、画像・PDF・動画・圧縮ファイル・Office文書に対応します。',
+                badgeSafety: 'NSFW安全チェック',
+                badgeTagging: '自動タグ分類',
+                badgePrivacy: '任意トークン / ローカルプライバシー',
+                capabilitySafetyTitle: 'NSFW検出',
+                capabilitySafetyBody: 'normal / nsfw のスコアと判定結果を返し、モデレーションやアップロード前チェック、自動処理に適しています。',
+                capabilityTagTitle: '自動タグ付け',
+                capabilityTagBody: '画像や動画に対して関連性の高いタグを返し、アニメ、風景、人物、都市、動物などを素早く分類できます。',
+                capabilityFileTitle: '幅広いファイル対応',
+                capabilityFileBody: 'image、PDF、video、archive、doc、docx を1つの統一アップロード入口で扱えます。',
+                capabilityPrivacyTitle: '認証とプライバシー',
+                capabilityPrivacyBody: '任意の Bearer Token 認証を維持し、重いフロントエンド依存なしでローカルやプライベート環境に適しています。',
+                panelKicker: '統一アップロードパネル',
+                panelTitle: '1回アップロードして2つのモードを切り替え',
+                panelSubtitle: 'デフォルトは Safety Check で、Auto Tagging に切り替えると同じアップロード処理が自動的に /tag に送信されます。',
+                modeCheckTitle: 'Safety Check',
+                modeCheckDesc: 'NSFW / normal スコアと審査ステータスを表示',
+                modeTagTitle: 'Auto Tagging',
+                modeTagDesc: 'タグ一覧を表示し、利用可能なら type / frames analyzed も表示',
+                dropText: 'ここをクリック、またはファイルをドラッグしてアップロード',
+                dropSubtextCheck: '現在のモード: Safety Check。共有アップローダーは /check に送信します。',
+                dropSubtextTag: '現在のモード: Auto Tagging。共有アップローダーは /tag に送信します。',
+                fileSupportPill: '対応: image / PDF / video / archive / doc / docx',
+                modeHintCheck: '現在のモード: Safety Check → /check',
+                modeHintTag: '現在のモード: Auto Tagging → /tag',
+                tokenLabel: '任意の API トークン',
+                tokenPlaceholder: 'APIトークン（オプション）',
+                privacy: 'アップロードされたファイルは保持されず、解析後すぐに削除されるため、ローカルまたはプライベート展開に適しています。',
+                progressIdle: 'アップロード待機中',
+                uploading: '{filename} をアップロード中',
+                processingCheck: '安全チェックを実行中...',
+                processingTag: '自動タグを生成中...',
                 uploadError: 'アップロード失敗',
                 parseError: '応答の解析に失敗しました',
-                processing: 'データを処理中...',
-                privacy: 'アップロードされたファイルは保存されず、分析後にすぐに削除されます',
-                scores: 'スコア - NSFW: {nsfw}, Normal: {normal}',
-                tokenPlaceholder: 'APIトークン（オプション）'
+                resultEmpty: '結果はここに表示されます。安全チェックは状態とスコア、自動タグはタグとファイル情報を表示します。',
+                normal: '正常なファイル',
+                nsfw: 'NSFWを検出',
+                reviewStatus: '審査ステータス',
+                nsfwScore: 'NSFWスコア',
+                normalScore: 'Normalスコア',
+                uploadSuccess: '解析完了',
+                taggingSuccess: 'タグ生成完了',
+                taggingEmpty: '有効なタグが返されませんでした',
+                resultType: 'ファイルタイプ',
+                framesAnalyzed: '解析フレーム数',
+                tagConfidence: '信頼度',
+                unknownType: '不明なタイプ'
             }
         };
 
-        function changeLang(lang) {
-            document.querySelector('html').setAttribute('lang', lang);
-            document.querySelector('h1').textContent = translations[lang].title;
-            document.querySelector('h2').textContent = translations[lang].subtitle;
-            document.querySelector('#dropText').textContent = translations[lang].dropText;
-            document.querySelector('.hint').textContent = translations[lang].privacy;
-            document.querySelector('#tokenInput').placeholder = translations[lang].tokenPlaceholder;
-
-            document.querySelectorAll('.lang-switch button').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.querySelector(`button[onclick="changeLang('${lang}')"]`).classList.add('active');
-
-            currentLang = lang;
-        }
-
         let currentLang = 'zh';
+        let currentMode = 'check';
 
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const progressBar = document.getElementById('progressBar');
         const progressBarFill = document.getElementById('progressBarFill');
-        const result = document.getElementById('result');
+        const progressText = document.getElementById('progressText');
+        const progressPercent = document.getElementById('progressPercent');
+        const resultEmpty = document.getElementById('resultEmpty');
+        const resultContent = document.getElementById('resultContent');
+        const dropText = document.getElementById('dropText');
+        const dropSubtext = document.getElementById('dropSubtext');
+        const modeHint = document.getElementById('modeHint');
+        const tokenInput = document.getElementById('tokenInput');
+        const modeCheckButton = document.getElementById('modeCheck');
+        const modeTagButton = document.getElementById('modeTag');
+
+        function applyTranslations() {
+            document.querySelector('html').setAttribute('lang', currentLang);
+
+            document.querySelectorAll('[data-i18n]').forEach((element) => {
+                const key = element.getAttribute('data-i18n');
+                if (translations[currentLang][key]) {
+                    element.textContent = translations[currentLang][key];
+                }
+            });
+
+            tokenInput.placeholder = translations[currentLang].tokenPlaceholder;
+            updateModeUI();
+        }
+
+        function changeLang(lang) {
+            currentLang = lang;
+            applyTranslations();
+
+            document.querySelectorAll('.lang-switch button').forEach((button) => {
+                button.classList.remove('active');
+            });
+            document.querySelector(`button[onclick="changeLang('${lang}')"]`).classList.add('active');
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            updateModeUI();
+            resetResults();
+        }
+
+        function updateModeUI() {
+            const lang = translations[currentLang];
+            const isCheck = currentMode === 'check';
+
+            modeCheckButton.classList.toggle('active', isCheck);
+            modeTagButton.classList.toggle('active', !isCheck);
+            modeCheckButton.setAttribute('aria-selected', isCheck ? 'true' : 'false');
+            modeTagButton.setAttribute('aria-selected', isCheck ? 'false' : 'true');
+
+            dropText.textContent = lang.dropText;
+            dropSubtext.textContent = isCheck ? lang.dropSubtextCheck : lang.dropSubtextTag;
+            modeHint.textContent = isCheck ? lang.modeHintCheck : lang.modeHintTag;
+            progressText.textContent = lang.progressIdle;
+            progressPercent.textContent = '0%';
+        }
+
+        function resetResults() {
+            resultContent.innerHTML = '';
+            resultEmpty.style.display = 'block';
+            progressBar.style.display = 'none';
+            progressBarFill.style.width = '0%';
+            progressPercent.textContent = '0%';
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function setStatus(message, type) {
+            resultEmpty.style.display = 'none';
+            resultContent.innerHTML = '<div class="result-status ' + type + '">' + escapeHtml(message) + '</div>';
+        }
+
+        function renderCheckResult(data) {
+            const lang = translations[currentLang];
+            const result = data.result || {};
+            const nsfwValue = typeof result.nsfw === 'number' ? result.nsfw : 0;
+            const normalValue = typeof result.normal === 'number' ? result.normal : 0;
+            const isFlagged = nsfwValue > 0.8;
+
+            resultEmpty.style.display = 'none';
+            resultContent.innerHTML = [
+                '<div class="result-status ' + (isFlagged ? 'error' : 'normal') + '">' + escapeHtml(isFlagged ? lang.nsfw : lang.normal) + '</div>',
+                '<div class="result-grid">',
+                '  <div class="result-card">',
+                '    <span class="result-card-label">' + escapeHtml(lang.reviewStatus) + '</span>',
+                '    <div class="result-card-value">' + escapeHtml(isFlagged ? lang.nsfw : lang.normal) + '</div>',
+                '  </div>',
+                '  <div class="result-card">',
+                '    <span class="result-card-label">' + escapeHtml(lang.nsfwScore) + '</span>',
+                '    <div class="result-card-value">' + nsfwValue.toFixed(4) + '</div>',
+                '  </div>',
+                '  <div class="result-card">',
+                '    <span class="result-card-label">' + escapeHtml(lang.normalScore) + '</span>',
+                '    <div class="result-card-value">' + normalValue.toFixed(4) + '</div>',
+                '  </div>',
+                '  <div class="result-card">',
+                '    <span class="result-card-label">Filename</span>',
+                '    <div class="result-card-value" style="font-size:1.05rem;line-height:1.4;">' + escapeHtml(data.filename || '-') + '</div>',
+                '  </div>',
+                '</div>'
+            ].join('');
+        }
+
+        function renderTagResult(data) {
+            const lang = translations[currentLang];
+            const result = data.result || {};
+            const tags = Array.isArray(result.tags) ? result.tags : [];
+            const metaItems = [];
+
+            if (result.type) {
+                metaItems.push('<div class="result-meta-item">' + escapeHtml(lang.resultType) + ': ' + escapeHtml(result.type) + '</div>');
+            }
+
+            if (typeof result.frames_analyzed !== 'undefined') {
+                metaItems.push('<div class="result-meta-item">' + escapeHtml(lang.framesAnalyzed) + ': ' + escapeHtml(result.frames_analyzed) + '</div>');
+            }
+
+            metaItems.push('<div class="result-meta-item">Filename: ' + escapeHtml(data.filename || '-') + '</div>');
+
+            const tagMarkup = tags.length
+                ? '<div class="tag-list">' + tags.map((tag) => {
+                    const label = tag.label || tag.key || '';
+                    const score = typeof tag.score === 'number' ? tag.score.toFixed(4) : '-';
+                    return '<div class="tag-chip"><span>' + escapeHtml(label) + '</span><span class="tag-chip-score">' + escapeHtml(lang.tagConfidence) + ': ' + score + '</span></div>';
+                }).join('') + '</div>'
+                : '<div class="result-status info">' + escapeHtml(lang.taggingEmpty) + '</div>';
+
+            resultEmpty.style.display = 'none';
+            resultContent.innerHTML = [
+                '<div class="result-status normal">' + escapeHtml(lang.taggingSuccess) + '</div>',
+                metaItems.length ? '<div class="result-meta">' + metaItems.join('') + '</div>' : '',
+                tagMarkup
+            ].join('');
+        }
+
+        function renderError(message) {
+            setStatus(message || translations[currentLang].uploadError, 'error');
+        }
 
         dropZone.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', handleFile);
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                uploadFile(file);
+            }
+        });
 
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
@@ -363,19 +1110,25 @@
             e.preventDefault();
             dropZone.classList.remove('dragover');
             const file = e.dataTransfer.files[0];
-            uploadFile(file);
+            if (file) {
+                uploadFile(file);
+            }
         });
 
-        function handleFile(e) {
-            const file = e.target.files[0];
-            if (file) uploadFile(file);
-        }
-
         function uploadFile(file) {
+            const lang = translations[currentLang];
+            const endpoint = currentMode === 'check' ? '/check' : '/tag';
+            const processingText = currentMode === 'check' ? lang.processingCheck : lang.processingTag;
+
+            resultContent.innerHTML = '';
+            resultEmpty.style.display = 'none';
+            setStatus(lang.uploading.replace('{filename}', file.name), 'info');
+
             progressBar.style.display = 'block';
             progressBarFill.style.width = '0%';
-            result.textContent = '';
-            scores.textContent = '';
+            progressText.textContent = lang.uploading.replace('{filename}', file.name);
+            progressPercent.textContent = '0%';
+            dropZone.classList.add('is-uploading');
 
             const xhr = new XMLHttpRequest();
             const formData = new FormData();
@@ -383,58 +1136,64 @@
 
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
-                    const percentage = (e.loaded / e.total) * 100;
+                    const percentage = Math.round((e.loaded / e.total) * 100);
                     progressBarFill.style.width = percentage + '%';
+                    progressPercent.textContent = percentage + '%';
                 }
             });
 
             xhr.onreadystatechange = () => {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        result.textContent = translations[currentLang].processing;
-                        const response = JSON.parse(xhr.responseText);
-                        try {
-                            if (response.status === "success") {
-                                const nsfw = response.result.nsfw.toFixed(4);
-                                const normal = response.result.normal.toFixed(4);
-
-                                if (response.result.nsfw > 0.8) {
-                                    result.textContent = translations[currentLang].nsfw;
-                                    result.className = 'result error';
-                                } else {
-                                    result.textContent = translations[currentLang].normal;
-                                    result.className = 'result normal';
-                                }
-
-                                scores.textContent = translations[currentLang].scores
-                                    .replace('{nsfw}', nsfw)
-                                    .replace('{normal}', normal);
-                            } else {
-                                result.textContent = response.message;
-                                result.className = 'result error';
-                            }
-                        } catch (e) {
-                            result.textContent = response.message;
-                            result.className = 'result error';
-                        }
-                    } else {
-                        const response = JSON.parse(xhr.responseText);
-                        result.textContent = response.message;
-                        result.className = 'result error';
-                    }
+                if (xhr.readyState !== 4) {
+                    return;
                 }
+
+                dropZone.classList.remove('is-uploading');
+                progressBarFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+                progressText.textContent = processingText;
+
+                let response;
+                try {
+                    response = JSON.parse(xhr.responseText);
+                } catch (error) {
+                    renderError(lang.parseError);
+                    progressText.textContent = lang.parseError;
+                    return;
+                }
+
+                if (xhr.status === 200 && response.status === 'success') {
+                    progressText.textContent = currentMode === 'check' ? lang.uploadSuccess : lang.taggingSuccess;
+                    if (currentMode === 'check') {
+                        renderCheckResult(response);
+                    } else {
+                        renderTagResult(response);
+                    }
+                    return;
+                }
+
+                const errorMessage = response && response.message ? response.message : lang.uploadError;
+                progressText.textContent = errorMessage;
+                renderError(errorMessage);
             };
 
-            xhr.open('POST', 'check', true);
+            xhr.onerror = () => {
+                dropZone.classList.remove('is-uploading');
+                progressText.textContent = lang.uploadError;
+                renderError(lang.uploadError);
+            };
 
-            // 添加 Token 认证头
-            const token = document.getElementById('tokenInput').value.trim();
+            xhr.open('POST', endpoint, true);
+
+            const token = tokenInput.value.trim();
             if (token) {
                 xhr.setRequestHeader('Authorization', 'Bearer ' + token);
             }
 
             xhr.send(formData);
         }
+
+        applyTranslations();
+        resetResults();
     </script>
 </body>
 
