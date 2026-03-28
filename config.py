@@ -20,12 +20,16 @@ def load_config_from_env():
 
     支持的环境变量:
     - NSFW_THRESHOLD: NSFW检测阈值 (float, 默认0.8)
+    - NSFW_MODEL_RESET_THRESHOLD: 鉴黄模型重置阈值 (int)
     - FFMPEG_MAX_FRAMES: FFmpeg最大帧数 (int, 默认20)
     - FFMPEG_MAX_TIMEOUT / FFMPEG_TIMEOUT: FFmpeg超时时间 (int, 默认1800秒)
     - AUTH_TOKEN: API认证Token (string, 默认None)
     - CHECK_ALL_FILES: 是否检查所有文件 (int, 默认0)
     - MAX_INTERVAL_SECONDS: 最大间隔秒数 (int, 默认30)
     - MAX_FILE_SIZE: 最大文件大小 (int, 默认20GB)
+    - TAG_MODEL_RESET_THRESHOLD: 标签模型重置阈值 (int)
+    - WD_GENERAL_THRESHOLD: WD通用标签阈值 (float, 默认0.32)
+    - WD_CHARACTER_THRESHOLD: WD角色标签阈值 (float, 默认0.8)
     - TAG_TOP_K: 自动标签返回数量 (int, 默认8)
     - TAG_MIN_SCORE: 自动标签最小分数阈值 (float, 默认0.2)
     """
@@ -35,6 +39,7 @@ def load_config_from_env():
     # 定义环境变量映射: 环境变量名 -> (配置键名, 类型转换函数)
     env_mappings = {
         'NSFW_THRESHOLD': ('NSFW_THRESHOLD', float),
+        'NSFW_MODEL_RESET_THRESHOLD': ('NSFW_MODEL_RESET_THRESHOLD', int),
         'FFMPEG_MAX_FRAMES': ('FFMPEG_MAX_FRAMES', int),
         'FFMPEG_MAX_TIMEOUT': ('FFMPEG_TIMEOUT', int),  # FFMPEG_MAX_TIMEOUT 映射到 FFMPEG_TIMEOUT
         'FFMPEG_TIMEOUT': ('FFMPEG_TIMEOUT', int),
@@ -42,6 +47,9 @@ def load_config_from_env():
         'CHECK_ALL_FILES': ('CHECK_ALL_FILES', int),
         'MAX_INTERVAL_SECONDS': ('MAX_INTERVAL_SECONDS', int),
         'MAX_FILE_SIZE': ('MAX_FILE_SIZE', int),
+        'TAG_MODEL_RESET_THRESHOLD': ('TAG_MODEL_RESET_THRESHOLD', int),
+        'WD_GENERAL_THRESHOLD': ('WD_GENERAL_THRESHOLD', float),
+        'WD_CHARACTER_THRESHOLD': ('WD_CHARACTER_THRESHOLD', float),
         'TAG_TOP_K': ('TAG_TOP_K', int),
         'TAG_MIN_SCORE': ('TAG_MIN_SCORE', float),
     }
@@ -180,11 +188,17 @@ SUPPORTED_MIME_TYPES = IMAGE_MIME_TYPES | VIDEO_MIME_TYPES | ARCHIVE_MIME_TYPES 
 # 默认配置值
 MAX_FILE_SIZE = 20 * 1024 * 1024 * 1024  # 20GB
 NSFW_THRESHOLD = 0.8
+NSFW_MODEL_NAME = 'Freepik/nsfw_image_detector'
+NSFW_MODEL_RESET_THRESHOLD = 10000
 FFMPEG_MAX_FRAMES = 20
 FFMPEG_TIMEOUT = 1800
 CHECK_ALL_FILES = 0
 MAX_INTERVAL_SECONDS = 30
 AUTH_TOKEN = None  # API认证Token，设置后需要在请求头中携带Token
+TAG_MODEL_NAME = 'SmilingWolf/wd-vit-tagger-v3'
+TAG_MODEL_RESET_THRESHOLD = 5000
+WD_GENERAL_THRESHOLD = 0.32
+WD_CHARACTER_THRESHOLD = 0.80
 TAG_TOP_K = 16
 TAG_MIN_SCORE = 0.15
 
@@ -306,6 +320,92 @@ TAG_DERIVED_RELATIONS = {
     'meme': ['text']
 }
 
+WD_TAG_ALIASES = {
+    'anime': ['anime', 'anime coloring', 'anime screencap', 'cel shading'],
+    'manga': ['manga', 'comic'],
+    'landscape': ['landscape', 'scenery'],
+    'girl': ['1girl', 'girl', 'female focus', 'solo female'],
+    'loli': ['loli'],
+    'cute_girl': ['cute girl'],
+    'woman': ['woman', 'female'],
+    'man': ['1boy', 'boy', 'man', 'male focus'],
+    'portrait': ['portrait', 'upper body', 'cowboy shot'],
+    'close_up_face': ['close-up', 'face focus', 'close up'],
+    'full_body': ['full body', 'standing'],
+    'selfie': ['selfie'],
+    'long_hair': ['long hair'],
+    'short_hair': ['short hair'],
+    'twintails': ['twintails'],
+    'school_uniform': ['school uniform'],
+    'maid_outfit': ['maid', 'maid headdress', 'maid outfit'],
+    'cosplay': ['cosplay'],
+    'dress': ['dress'],
+    'swimwear': ['swimsuit', 'bikini', 'one-piece swimsuit', 'school swimsuit', 'swimwear'],
+    'lingerie': ['lingerie', 'bra', 'panties'],
+    'stockings': ['stockings'],
+    'white_stockings': ['white stockings', 'white thighhighs', 'white legwear'],
+    'black_stockings': ['black stockings', 'black thighhighs', 'black legwear'],
+    'pantyhose': ['pantyhose'],
+    'thighhighs': ['thighhighs', 'thigh-highs'],
+    'knee_high_socks': ['kneehighs', 'knee high socks'],
+    'garter_straps': ['garter straps'],
+    'ankle_socks': ['ankle socks'],
+    'long_socks': ['long socks'],
+    'leggings': ['leggings'],
+    'bare_legs': ['bare legs'],
+    'bare_shoulders': ['bare shoulders'],
+    'legs': ['legs', 'beautiful legs'],
+    'bare_feet': ['barefoot', 'bare feet', 'feet'],
+    'midriff': ['midriff'],
+    'cleavage': ['cleavage'],
+    'outdoor': ['outdoors', 'outdoor'],
+    'indoor': ['indoors', 'indoor'],
+    'nature': ['nature'],
+    'bedroom': ['bedroom'],
+    'bathroom': ['bathroom'],
+    'classroom': ['classroom'],
+    'stage': ['stage'],
+    'mountain': ['mountain'],
+    'forest': ['forest'],
+    'beach': ['beach'],
+    'sky': ['sky'],
+    'city': ['city', 'cityscape'],
+    'building': ['building'],
+    'car': ['car'],
+    'animal': ['animal'],
+    'pet': ['pet'],
+    'bird': ['bird'],
+    'flower': ['flower'],
+    'food': ['food'],
+    'drink': ['drink'],
+    'illustration': ['illustration'],
+    'cartoon': ['cartoon'],
+    'brand': ['brand', 'brand name'],
+    'logo': ['logo'],
+    'icon': ['icon'],
+    'poster': ['poster'],
+    'banner': ['banner'],
+    'advertisement': ['advertisement', 'ad'],
+    'user_interface': ['user interface', 'ui'],
+    'app_interface': ['mobile ui', 'app ui', 'mobile app interface'],
+    'webpage': ['web page', 'website'],
+    'screenshot': ['screenshot', 'screen capture'],
+    'text': ['text', 'english text'],
+    'document_page': ['document page'],
+    'chart': ['chart', 'graph'],
+    'infographic': ['infographic'],
+    'product': ['product', 'product photo'],
+    'packaging': ['packaging', 'product packaging'],
+    'fashion': ['fashion'],
+    'beauty': ['beauty product', 'makeup'],
+    'meme': ['meme', 'internet meme'],
+    'game': ['video game', 'video game screenshot', 'game cg'],
+    'vehicle': ['vehicle'],
+    'monochrome': ['monochrome', 'greyscale'],
+    'idol': ['idol'],
+    'night': ['night', 'night scene']
+}
+
 # 从环境变量加载配置
 env_config, env_loaded = load_config_from_env()
 
@@ -316,13 +416,25 @@ globals().update(env_config)
 logger.info("当前生效的配置:")
 logger.info("-" * 50)
 final_nsfw = env_config.get('NSFW_THRESHOLD', NSFW_THRESHOLD)
+final_nsfw_model = env_config.get('NSFW_MODEL_NAME', NSFW_MODEL_NAME)
+final_nsfw_reset = env_config.get('NSFW_MODEL_RESET_THRESHOLD', NSFW_MODEL_RESET_THRESHOLD)
 final_frames = env_config.get('FFMPEG_MAX_FRAMES', FFMPEG_MAX_FRAMES)
 final_timeout = env_config.get('FFMPEG_TIMEOUT', FFMPEG_TIMEOUT)
 final_token = env_config.get('AUTH_TOKEN', AUTH_TOKEN)
+final_tag_model = env_config.get('TAG_MODEL_NAME', TAG_MODEL_NAME)
+final_tag_reset = env_config.get('TAG_MODEL_RESET_THRESHOLD', TAG_MODEL_RESET_THRESHOLD)
+final_wd_general_threshold = env_config.get('WD_GENERAL_THRESHOLD', WD_GENERAL_THRESHOLD)
+final_wd_character_threshold = env_config.get('WD_CHARACTER_THRESHOLD', WD_CHARACTER_THRESHOLD)
 logger.info(f"{'NSFW_THRESHOLD':25s} = {final_nsfw}")
+logger.info(f"{'NSFW_MODEL_NAME':25s} = {final_nsfw_model}")
+logger.info(f"{'NSFW_MODEL_RESET_THRESHOLD':25s} = {final_nsfw_reset}")
 logger.info(f"{'FFMPEG_MAX_FRAMES':25s} = {final_frames}")
 logger.info(f"{'FFMPEG_TIMEOUT':25s} = {final_timeout}")
 logger.info(f"{'AUTH_TOKEN':25s} = {'***' if final_token else 'None'}")
+logger.info(f"{'TAG_MODEL_NAME':25s} = {final_tag_model}")
+logger.info(f"{'TAG_MODEL_RESET_THRESHOLD':25s} = {final_tag_reset}")
+logger.info(f"{'WD_GENERAL_THRESHOLD':25s} = {final_wd_general_threshold}")
+logger.info(f"{'WD_CHARACTER_THRESHOLD':25s} = {final_wd_character_threshold}")
 logger.info(f"{'TAG_TOP_K':25s} = {env_config.get('TAG_TOP_K', TAG_TOP_K)}")
 logger.info(f"{'TAG_MIN_SCORE':25s} = {env_config.get('TAG_MIN_SCORE', TAG_MIN_SCORE)}")
 if env_loaded:
@@ -337,5 +449,8 @@ __all__ = [
     'DOCUMENT_MIME_TYPES',  # 新增
     'SUPPORTED_MIME_TYPES', 'MAX_FILE_SIZE', 'NSFW_THRESHOLD', 'FFMPEG_MAX_FRAMES',
     'FFMPEG_TIMEOUT', 'CHECK_ALL_FILES', 'MAX_INTERVAL_SECONDS', 'AUTH_TOKEN',
-    'TAG_TOP_K', 'TAG_MIN_SCORE', 'TAG_LABELS', 'TAG_DERIVED_RELATIONS'
+    'NSFW_MODEL_NAME', 'NSFW_MODEL_RESET_THRESHOLD',
+    'TAG_MODEL_NAME', 'TAG_MODEL_RESET_THRESHOLD',
+    'WD_GENERAL_THRESHOLD', 'WD_CHARACTER_THRESHOLD',
+    'TAG_TOP_K', 'TAG_MIN_SCORE', 'TAG_LABELS', 'TAG_DERIVED_RELATIONS', 'WD_TAG_ALIASES'
 ]

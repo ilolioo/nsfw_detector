@@ -9,17 +9,17 @@
 
 ## 简介
 
-这是一个 NSFW 内容检测器，它基于 [Falconsai/nsfw_image_detection](https://huggingface.co/Falconsai/nsfw_image_detection) 。
-模型: google/vit-base-patch16-224-in21k
+这是一个 NSFW 内容检测器，现已升级为更强的本地模型用于鉴黄与标签分类。
+默认鉴黄模型为 `Freepik/nsfw_image_detector`，默认标签分类模型为 `SmilingWolf/wd-vit-tagger-v3`，标签分类使用 WD 系列专用多标签模型而不是 zero-shot CLIP。
 
-现在同时支持图片、视频自动标签分类接口，可输出如动漫、风景、少女、城市、动物，以及 Logo、图标、海报、界面、截图、商品图等自动生成标签，并会按识别结果自动补充部分高相关标签。
+现在同时支持图片、视频自动标签分类接口，`/tag` 会直接返回 WD 多标签模型自主识别并生成的原生标签结果，适合检索增强、素材整理与模型驱动分类流程。
 
 相比其它常见的 NSFW 检测器，这个检测器的优势在于：
 
 * 基于 AI ，准确度更好。
 * 支持纯 CPU 推理，可以运行在大部分服务器上。
 * 自动调度多个 CPU 加速推理。
-* 简单判断，只有两个类别：nsfw 和 normal。
+* 对外接口仍保持 `nsfw` 和 `normal` 两个结果字段，内部会自动兼容更强鉴黄模型输出。
 * 以 API 的方式提供服务，更方便集成到其它应用中。
 * 基于 Docker 部署，便于分布式部署。
 * 纯本地，保护您的数据安全。
@@ -65,10 +65,14 @@ docker run -d -p 3333:3333 --name nsfw-detector ilolioo/nsfw_detector:latest
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `nsfw_threshold` | `0.8` | 检测阈值 (0-1) |
-| `ffmpeg_max_frames` | `20` | FFmpeg处理最大帧数 |
-| `ffmpeg_max_timeout` | `1800` | FFmpeg处理超时时间 |
-| `auth_token` | `None` | API 认证 token (optional) |
+| `NSFW_THRESHOLD` | `0.8` | 检测阈值 (0-1) |
+| `NSFW_MODEL_RESET_THRESHOLD` | `10000` | 鉴黄模型重置阈值 |
+| `TAG_MODEL_RESET_THRESHOLD` | `5000` | 标签模型重置阈值 |
+| `WD_GENERAL_THRESHOLD` | `0.32` | WD 通用标签阈值 |
+| `WD_CHARACTER_THRESHOLD` | `0.80` | WD 角色标签阈值 |
+| `FFMPEG_MAX_FRAMES` | `20` | FFmpeg处理最大帧数 |
+| `FFMPEG_MAX_TIMEOUT` | `1800` | FFmpeg处理超时时间 |
+| `AUTH_TOKEN` | `None` | API 认证 token (optional) |
 | `HF_ENDPOINT` | `None` | 大陆机器需配置镜像下载抱脸托管模型，推荐https://hf-mirror.com (optional) |
 
 
@@ -94,6 +98,8 @@ curl -X POST -F "path=/path/to/image.jpg" http://localhost:3333/check
 
 ### 使用 API 进行自动标签分类
 
+`/tag` 返回的是 WD 模型原生生成的标签，不再强制映射为人工预设的内容分类标签。
+
 ```bash
 # 上传图片或视频进行标签分类
 curl -X POST -F "file=@/path/to/image.jpg" http://localhost:3333/tag
@@ -111,9 +117,9 @@ curl -X POST -F "path=/path/to/video.mp4" http://localhost:3333/tag
   "result": {
     "type": "image",
     "tags": [
-      {"key": "anime", "label": "动漫", "score": 0.9123},
-      {"key": "girl", "label": "少女", "score": 0.8642},
-      {"key": "portrait", "label": "人像", "score": 0.6211}
+      {"key": "1girl", "label": "1girl", "score": 0.9984},
+      {"key": "solo", "label": "solo", "score": 0.9961},
+      {"key": "long hair", "label": "long hair", "score": 0.9418}
     ]
   }
 }
@@ -121,14 +127,15 @@ curl -X POST -F "path=/path/to/video.mp4" http://localhost:3333/tag
 
 视频返回会额外包含 `frames_analyzed` 字段，表示参与聚合分类的视频帧数量。
 
-部分标签会在解析时自动补充关联标签，例如识别到 `logo` 时可能同时补充 `图标`、`品牌元素`，识别到 `anime` 时可能补充 `插画`、`卡通`。
-
 ### 自动标签分类相关环境变量
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `TAG_TOP_K` | `8` | 自动标签接口最多返回多少个标签 |
-| `TAG_MIN_SCORE` | `0.2` | 自动标签接口最小分数阈值 |
+| `TAG_MODEL_RESET_THRESHOLD` | `5000` | 标签模型重置阈值 |
+| `WD_GENERAL_THRESHOLD` | `0.32` | WD 通用标签阈值 |
+| `WD_CHARACTER_THRESHOLD` | `0.80` | WD 角色标签阈值 |
+| `TAG_TOP_K` | `16` | 自动标签接口最多返回多少个标签 |
+| `TAG_MIN_SCORE` | `0.15` | 自动标签接口最小分数阈值 |
 
 ## 许可证
 

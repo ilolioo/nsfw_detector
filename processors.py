@@ -4,6 +4,8 @@ import subprocess
 import numpy as np
 from PIL import Image
 import io
+import pandas as pd
+import onnxruntime as ort
 from docx import Document
 import logging
 import tempfile
@@ -14,11 +16,15 @@ import gc
 from pdf2image import convert_from_path
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from huggingface_hub import hf_hub_download
 from utils import ArchiveHandler, can_process_file, sort_files_by_priority
 from config import (
     MAX_FILE_SIZE, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, 
     NSFW_THRESHOLD, FFMPEG_MAX_FRAMES, FFMPEG_TIMEOUT, ARCHIVE_EXTENSIONS,
-    TAG_TOP_K, TAG_MIN_SCORE, TAG_LABELS, TAG_DERIVED_RELATIONS
+    NSFW_MODEL_NAME, NSFW_MODEL_RESET_THRESHOLD,
+    TAG_MODEL_NAME, TAG_MODEL_RESET_THRESHOLD,
+    WD_GENERAL_THRESHOLD, WD_CHARACTER_THRESHOLD,
+    TAG_TOP_K, TAG_MIN_SCORE
 )
 
 # 配置日志
@@ -35,10 +41,15 @@ class ModelManager:
         return cls._instance
     
     def __init__(self):
-        self.pipe = pipeline("image-classification", model="Falconsai/nsfw_image_detection", device=-1)
+        self.model_name = NSFW_MODEL_NAME
+        self.pipe = self._load_pipeline(self.model_name)
         self.usage_count = 0
-        self.reset_threshold = 10000  # 每处理1万张图片重置一次模型
-        logger.info("模型管理器初始化完成")
+        self.reset_threshold = NSFW_MODEL_RESET_THRESHOLD
+        logger.info(f"模型管理器初始化完成，当前模型: {self.model_name}")
+
+    def _load_pipeline(self, model_name):
+        logger.info(f"加载鉴黄模型: {model_name}")
+        return pipeline("image-classification", model=model_name, device=-1)
     
     def get_pipeline(self):
         # 增加使用计数
@@ -51,7 +62,7 @@ class ModelManager:
             old_pipe = self.pipe
             
             # 创建新模型
-            self.pipe = pipeline("image-classification", model="Falconsai/nsfw_image_detection", device=-1)
+            self.pipe = self._load_pipeline(self.model_name)
             
             # 删除旧模型
             del old_pipe
@@ -85,20 +96,38 @@ class TagModelManager:
         return cls._instance
 
     def __init__(self):
-        self.labels = TAG_LABELS
+        self.model_name = TAG_MODEL_NAME
         self.pipe = None
-        self.candidate_labels = [item['hypothesis'] for item in TAG_LABELS]
         self.usage_count = 0
-        self.reset_threshold = 5000
-        logger.info("标签模型管理器已创建，首次调用时加载模型")
+        self.reset_threshold = TAG_MODEL_RESET_THRESHOLD
+        self.tags_df = None
+        self.general_indexes = []
+        self.character_indexes = []
+        self.rating_indexes = []
+        self.input_name = None
+        self.output_name = None
+        logger.info(f"标签模型管理器已创建，首次调用时加载模型: {self.model_name}")
+
+    def _load_pipeline(self, model_name):
+        logger.info(f"加载标签模型: {model_name}")
+        model_path = hf_hub_download(model_name, 'model.onnx')
+        tags_path = hf_hub_download(model_name, 'selected_tags.csv')
+        self.tags_df = pd.read_csv(tags_path)
+        self.rating_indexes = self.tags_df.index[self.tags_df['category'] == 9].tolist()
+        self.general_indexes = self.tags_df.index[self.tags_df['category'] == 0].tolist()
+        self.character_indexes = self.tags_df.index[self.tags_df['category'] == 4].tolist()
+
+        session = ort.InferenceSession(
+            model_path,
+            providers=['CPUExecutionProvider']
+        )
+        self.input_name = session.get_inputs()[0].name
+        self.output_name = session.get_outputs()[0].name
+        return session
 
     def get_pipeline(self):
         if self.pipe is None:
-            self.pipe = pipeline(
-                "zero-shot-image-classification",
-                model="openai/clip-vit-base-patch32",
-                device=-1
-            )
+            self.pipe = self._load_pipeline(self.model_name)
             logger.info("标签模型加载完成")
 
         self.usage_count += 1
@@ -106,11 +135,7 @@ class TagModelManager:
         if self.usage_count >= self.reset_threshold:
             logger.info(f"标签模型已处理 {self.usage_count} 张图片，执行重置")
             old_pipe = self.pipe
-            self.pipe = pipeline(
-                "zero-shot-image-classification",
-                model="openai/clip-vit-base-patch32",
-                device=-1
-            )
+            self.pipe = self._load_pipeline(self.model_name)
             del old_pipe
             gc.collect()
             self.usage_count = 0
@@ -222,7 +247,7 @@ class VideoProcessor:
             if self.duration < FFMPEG_MAX_FRAMES:
                 # 如果视频时长小于预期提取的帧数，则每秒提取一帧
                 fps = "1"
-                frames_to_extract = min(int(self.duration), FFMPEG_MAX_FRAMES)
+                frames_to_extract = max(1, min(int(np.ceil(self.duration)), FFMPEG_MAX_FRAMES))
             else:
                 # 正常情况下的帧率计算
                 interval_seconds = max(1, int(self.duration / FFMPEG_MAX_FRAMES))
@@ -369,8 +394,9 @@ def process_image(image):
         
         # 使用管道处理图像
         result = pipe(image)
-        nsfw_score = next((item['score'] for item in result if item['label'] == 'nsfw'), 0)
-        normal_score = next((item['score'] for item in result if item['label'] == 'normal'), 1)
+        normalized = _normalize_nsfw_result(result)
+        nsfw_score = normalized['nsfw']
+        normal_score = normalized['normal']
         logger.info(f"图片处理完成: NSFW={nsfw_score:.3f}, Normal={normal_score:.3f}")
         
         # 强制垃圾回收
@@ -385,58 +411,78 @@ def process_image(image):
         raise Exception(f"Image processing failed: {str(e)}")
 
 
+def _normalize_nsfw_result(result):
+    """归一化不同鉴黄模型输出，统一映射为 nsfw/normal"""
+    safe_labels = {
+        'normal', 'neutral', 'safe', 'sfw', 'drawings', 'non-explicit'
+    }
+    nsfw_labels = {
+        'nsfw', 'porn', 'pornography', 'sexy', 'hentai', 'explicit',
+        'sexual', 'adult', 'erotica'
+    }
+
+    nsfw_score = 0.0
+    normal_score = 0.0
+
+    for item in result:
+        label = str(item.get('label', '')).strip().lower()
+        score = float(item.get('score', 0))
+        if label in nsfw_labels or any(keyword in label for keyword in ('nsfw', 'porn', 'sexy', 'hentai', 'explicit', 'adult')):
+            nsfw_score = max(nsfw_score, score)
+        elif label in safe_labels or any(keyword in label for keyword in ('safe', 'normal', 'neutral', 'sfw')):
+            normal_score = max(normal_score, score)
+
+    if nsfw_score == 0.0 and normal_score == 0.0:
+        logger.warning("鉴黄模型输出未匹配已知标签，使用保守默认值")
+        return {'nsfw': 0.0, 'normal': 1.0}
+
+    if normal_score == 0.0:
+        normal_score = max(0.0, 1.0 - nsfw_score)
+    if nsfw_score == 0.0:
+        nsfw_score = max(0.0, 1.0 - normal_score)
+
+    total_score = nsfw_score + normal_score
+    if total_score > 0:
+        nsfw_score = nsfw_score / total_score
+        normal_score = normal_score / total_score
+
+    return {
+        'nsfw': round(min(max(nsfw_score, 0.0), 1.0), 4),
+        'normal': round(min(max(normal_score, 0.0), 1.0), 4)
+    }
+
+
 def _normalize_tag_results(result, include_fallback=True):
     """规范化标签结果"""
-    tags = []
-    label_index = {label['key']: label for label in TAG_LABELS}
+    tag_scores = {}
 
     for item in result:
         score = float(item.get('score', 0))
         if score < TAG_MIN_SCORE:
             continue
 
-        hypothesis = item.get('label', '').strip().lower()
-        matched = next((label for label in TAG_LABELS if label['hypothesis'].lower() == hypothesis), None)
-        if not matched:
+        raw_label = item.get('label', '').strip().lower().replace('_', ' ')
+        if not raw_label:
             continue
 
-        tags.append({
-            'key': matched['key'],
-            'label': matched['label'],
-            'score': round(score, 4)
-        })
+        existing = tag_scores.get(raw_label)
+        normalized_score = round(score, 4)
+        if existing is None or normalized_score > existing['score']:
+            tag_scores[raw_label] = {
+                'key': raw_label,
+                'label': raw_label,
+                'score': normalized_score
+            }
 
-    existing_keys = {tag['key'] for tag in tags}
-    derived_tags = []
-    for tag in list(tags):
-        related_keys = TAG_DERIVED_RELATIONS.get(tag['key'], [])
-        for related_key in related_keys:
-            if related_key in existing_keys:
-                continue
-
-            related_label = label_index.get(related_key)
-            if related_label is None:
-                continue
-
-            derived_score = round(max(TAG_MIN_SCORE, tag['score'] * 0.85), 4)
-            derived_tags.append({
-                'key': related_label['key'],
-                'label': related_label['label'],
-                'score': derived_score,
-                'derived': True
-            })
-            existing_keys.add(related_key)
-
-    tags.extend(derived_tags)
+    tags = list(tag_scores.values())
 
     tags.sort(key=lambda item: item['score'], reverse=True)
     tags = tags[:TAG_TOP_K]
 
     if include_fallback and not tags:
-        other_label = next(label for label in TAG_LABELS if label['key'] == 'other')
         tags = [{
-            'key': other_label['key'],
-            'label': other_label['label'],
+            'key': 'other',
+            'label': 'other',
             'score': 1.0
         }]
 
@@ -447,8 +493,8 @@ def process_image_tags(image):
     """处理单张图片并返回自动标签结果"""
     try:
         logger.info("开始处理图片标签")
-        pipe = tag_model_manager.get_pipeline()
-        result = pipe(image, candidate_labels=tag_model_manager.candidate_labels)
+        session = tag_model_manager.get_pipeline()
+        result = _run_wd_tagger(image, session)
         tags = _normalize_tag_results(result, include_fallback=True)
         logger.info(f"图片标签处理完成，返回 {len(tags)} 个标签")
 
@@ -461,6 +507,57 @@ def process_image_tags(image):
     except Exception as e:
         logger.error(f"图片标签处理失败: {str(e)}")
         raise Exception(f"Image tag processing failed: {str(e)}")
+
+
+def _prepare_wd_image(image):
+    if image.mode != 'RGBA':
+        rgba_image = image.convert('RGBA')
+    else:
+        rgba_image = image.copy()
+
+    background = Image.new('RGBA', rgba_image.size, (255, 255, 255, 255))
+    composited = Image.alpha_composite(background, rgba_image).convert('RGB')
+
+    width, height = composited.size
+    max_side = max(width, height)
+    padded = Image.new('RGB', (max_side, max_side), (255, 255, 255))
+    paste_x = (max_side - width) // 2
+    paste_y = (max_side - height) // 2
+    padded.paste(composited, (paste_x, paste_y))
+
+    resized = padded.resize((448, 448), Image.BICUBIC)
+    image_array = np.asarray(resized, dtype=np.float32)
+    image_array = image_array[:, :, ::-1]
+    image_array = np.expand_dims(image_array, 0)
+    return image_array
+
+
+def _run_wd_tagger(image, session):
+    image_array = _prepare_wd_image(image)
+    output = session.run(
+        [tag_model_manager.output_name],
+        {tag_model_manager.input_name: image_array}
+    )[0][0]
+
+    rows = []
+    for idx in tag_model_manager.general_indexes:
+        score = float(output[idx])
+        if score >= WD_GENERAL_THRESHOLD:
+            rows.append({
+                'label': str(tag_model_manager.tags_df.iloc[idx]['name']),
+                'score': score
+            })
+
+    for idx in tag_model_manager.character_indexes:
+        score = float(output[idx])
+        if score >= WD_CHARACTER_THRESHOLD:
+            rows.append({
+                'label': str(tag_model_manager.tags_df.iloc[idx]['name']),
+                'score': score
+            })
+
+    rows.sort(key=lambda item: item['score'], reverse=True)
+    return rows
 
 
 class TagVideoProcessor(VideoProcessor):

@@ -646,7 +646,7 @@
                     <div class="section-header">
                         <div>
                             <h2 data-i18n="tagTitle">/tag · 自动标签</h2>
-                            <p data-i18n="tagBody">为图片或视频返回标签列表，并在可用时附带文件类型与视频分析帧数，适合内容分类、检索增强与素材整理流程。</p>
+                            <p data-i18n="tagBody">为图片或视频返回由 WD 多标签模型自动生成的标签列表，并在可用时附带文件类型与视频分析帧数，适合检索增强、素材整理与模型驱动分类流程。</p>
                         </div>
                         <div class="inline-pills">
                             <span class="method-pill">POST</span>
@@ -666,7 +666,7 @@
                             <h3 data-i18n="tagResponseTitle">代表性返回字段</h3>
                             <ul>
                                 <li><strong>result.type</strong> <span data-i18n="typeDesc">返回文件类型，例如 image 或 video。</span></li>
-                                <li><strong>result.tags</strong> <span data-i18n="tagsDesc">标签数组，包含 key、label、score。</span></li>
+                                <li><strong>result.tags</strong> <span data-i18n="tagsDesc">标签数组，包含模型原生生成的 key、label、score。</span></li>
                                 <li><strong>result.frames_analyzed</strong> <span data-i18n="framesDesc">视频场景下可返回参与聚合的帧数。</span></li>
                             </ul>
                         </article>
@@ -697,9 +697,9 @@
     "type": "video",
     "frames_analyzed": 12,
     "tags": [
-      {"key": "anime", "label": "动漫", "score": 0.9123},
-      {"key": "girl", "label": "少女", "score": 0.8642},
-      {"key": "portrait", "label": "人像", "score": 0.6211}
+      {"key": "1girl", "label": "1girl", "score": 0.9984},
+      {"key": "solo", "label": "solo", "score": 0.9961},
+      {"key": "long hair", "label": "long hair", "score": 0.9418}
     ]
   }
 }</pre>
@@ -783,13 +783,13 @@
                 checkCurlPathTitle: '使用 path 模式',
                 checkResponseSampleTitle: '响应示例',
                 tagTitle: '/tag · 自动标签',
-                tagBody: '为图片或视频返回标签列表，并在可用时附带文件类型与视频分析帧数，适合内容分类、检索增强与素材整理流程。',
+                tagBody: '为图片或视频返回由 WD 多标签模型自动生成的标签列表，并在可用时附带文件类型与视频分析帧数，适合检索增强、素材整理与模型驱动分类流程。',
                 tagRequestFieldsTitle: '表单字段',
                 tagFieldFile: 'file：上传图片或视频文件。',
                 tagFieldPath: 'path：服务器本地图片或视频路径。',
                 tagResponseTitle: '代表性返回字段',
                 typeDesc: '返回文件类型，例如 image 或 video。',
-                tagsDesc: '标签数组，包含 key、label、score。',
+                tagsDesc: '标签数组，包含模型原生生成的 key、label、score。',
                 framesDesc: '视频场景下可返回参与聚合的帧数。',
                 tagCurlFileTitle: '使用 file 模式',
                 tagCurlPathTitle: '使用 path 模式',
@@ -842,13 +842,13 @@
                 checkCurlPathTitle: 'Using path mode',
                 checkResponseSampleTitle: 'Response example',
                 tagTitle: '/tag · auto tagging',
-                tagBody: 'Returns a tag list for images or video and may include the file type plus analyzed frame count when available, making it suitable for classification, search enrichment, and asset organization.',
+                tagBody: 'Returns WD model-generated tags for images or video and may include the file type plus analyzed frame count when available, making it suitable for search enrichment, asset organization, and model-driven classification.',
                 tagRequestFieldsTitle: 'Form fields',
                 tagFieldFile: 'file: upload an image or video file.',
                 tagFieldPath: 'path: pass a server-local image or video path.',
                 tagResponseTitle: 'Representative response fields',
                 typeDesc: 'Returns the file type, such as image or video.',
-                tagsDesc: 'Array of tags containing key, label, and score.',
+                tagsDesc: 'Array of model-generated tags containing key, label, and score.',
                 framesDesc: 'For video requests, may include the number of frames used for aggregation.',
                 tagCurlFileTitle: 'Using file mode',
                 tagCurlPathTitle: 'Using path mode',
@@ -901,13 +901,13 @@
                 checkCurlPathTitle: 'path モードを使う',
                 checkResponseSampleTitle: 'レスポンス例',
                 tagTitle: '/tag · 自動タグ付け',
-                tagBody: '画像や動画に対するタグ一覧を返し、利用可能な場合はファイルタイプや解析フレーム数も含みます。分類、検索強化、素材整理に向いています。',
+                tagBody: '画像や動画に対して WD マルチラベルモデルが自動生成したタグ一覧を返し、利用可能な場合はファイルタイプや解析フレーム数も含みます。検索強化、素材整理、モデル駆動の分類に向いています。',
                 tagRequestFieldsTitle: 'フォームフィールド',
                 tagFieldFile: 'file：画像または動画ファイルをアップロードします。',
                 tagFieldPath: 'path：サーバーローカルの画像または動画パスを渡します。',
                 tagResponseTitle: '代表的なレスポンス項目',
                 typeDesc: 'image や video などのファイルタイプを返します。',
-                tagsDesc: 'key・label・score を含むタグ配列です。',
+                tagsDesc: 'モデルが生成した key・label・score を含むタグ配列です。',
                 framesDesc: '動画リクエストでは、集約に使われたフレーム数が含まれる場合があります。',
                 tagCurlFileTitle: 'file モードを使う',
                 tagCurlPathTitle: 'path モードを使う',

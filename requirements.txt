@@ -10,3 +10,7 @@ python-docx
 torch --index-url https://download.pytorch.org/whl/cpu
 python-magic
 numpy
+onnxruntime>=1.17.0
+huggingface_hub
+pandas
+timm

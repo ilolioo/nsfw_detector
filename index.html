@@ -775,7 +775,7 @@
                     <article class="capability-card">
                         <div class="capability-icon">🏷️</div>
                         <h3 data-i18n="capabilityTagTitle">自动标签</h3>
-                        <p data-i18n="capabilityTagBody">为图片和视频返回高相关标签，帮助快速分类动漫、风景、人物、城市或动物等内容。</p>
+                        <p data-i18n="capabilityTagBody">为图片和视频返回由 WD 多标签模型自动生成的标签，适合检索增强、素材整理与模型驱动分类。</p>
                     </article>
                     <article class="capability-card">
                         <div class="capability-icon">📦</div>
@@ -795,7 +795,7 @@
                     <div class="panel-header">
                         <div class="panel-kicker" data-i18n="panelKicker">Unified Upload</div>
                         <h2 data-i18n="panelTitle">上传一次，在两种模式间切换</h2>
-                        <p data-i18n="panelSubtitle">默认使用 Safety Check，切换到 Auto Tagging 后会自动将同一上传流程路由到 /tag。</p>
+                        <p data-i18n="panelSubtitle">默认使用 Safety Check，切换到 Auto Tagging 后会自动将同一上传流程路由到 /tag，并返回模型自动生成的标签。</p>
                     </div>
 
                     <div class="mode-switch" role="tablist" aria-label="Mode switch">
@@ -868,14 +868,14 @@
                 capabilitySafetyTitle: 'NSFW 检测',
                 capabilitySafetyBody: '输出 normal / nsfw 分数与最终状态，适合内容审核、上传前校验和自动化流程。',
                 capabilityTagTitle: '自动标签',
-                capabilityTagBody: '为图片和视频返回高相关标签，帮助快速分类动漫、风景、人物、城市或动物等内容。',
+                 capabilityTagBody: '为图片和视频返回由 WD 多标签模型自动生成的标签，适合检索增强、素材整理与模型驱动分类。',
                 capabilityFileTitle: '广泛文件支持',
                 capabilityFileBody: '支持 image、PDF、video、archive、doc、docx，保持一个统一上传入口。',
                 capabilityPrivacyTitle: '鉴权与隐私',
                 capabilityPrivacyBody: '支持可选 Bearer Token 认证，适合本地部署与私有网络场景，不额外引入复杂前端依赖。',
                 panelKicker: '统一上传面板',
                 panelTitle: '上传一次，在两种模式间切换',
-                panelSubtitle: '默认使用 Safety Check，切换到 Auto Tagging 后会自动将同一上传流程路由到 /tag。',
+                 panelSubtitle: '默认使用 Safety Check，切换到 Auto Tagging 后会自动将同一上传流程路由到 /tag，并返回模型自动生成的标签。',
                 modeCheckTitle: 'Safety Check',
                 modeCheckDesc: '输出 NSFW / normal 分数与审核状态',
                 modeTagTitle: 'Auto Tagging',
@@ -922,14 +922,14 @@
                 capabilitySafetyTitle: 'NSFW detection',
                 capabilitySafetyBody: 'Return normal / nsfw scores and a clear review status for moderation, pre-upload checks, and automation pipelines.',
                 capabilityTagTitle: 'Auto tagging',
-                capabilityTagBody: 'Return high-signal tags for images and video to quickly classify anime, landscape, people, city, animals, and more.',
+                 capabilityTagBody: 'Return WD model-generated tags for images and video, suitable for search enrichment, asset organization, and model-driven classification.',
                 capabilityFileTitle: 'Broad file support',
                 capabilityFileBody: 'Supports image, PDF, video, archive, doc, and docx through one unified upload entry point.',
                 capabilityPrivacyTitle: 'Auth and privacy',
                 capabilityPrivacyBody: 'Keeps optional Bearer token authentication for local or private deployments without adding heavy frontend dependencies.',
                 panelKicker: 'Unified upload panel',
                 panelTitle: 'Upload once and switch between two modes',
-                panelSubtitle: 'Safety Check remains the default mode, and switching to Auto Tagging routes the same upload flow to /tag automatically.',
+                 panelSubtitle: 'Safety Check remains the default mode, and switching to Auto Tagging routes the same upload flow to /tag and returns model-generated tags.',
                 modeCheckTitle: 'Safety Check',
                 modeCheckDesc: 'Show NSFW / normal scores and a moderation status',
                 modeTagTitle: 'Auto Tagging',
@@ -976,14 +976,14 @@
                 capabilitySafetyTitle: 'NSFW検出',
                 capabilitySafetyBody: 'normal / nsfw のスコアと判定結果を返し、モデレーションやアップロード前チェック、自動処理に適しています。',
                 capabilityTagTitle: '自動タグ付け',
-                capabilityTagBody: '画像や動画に対して関連性の高いタグを返し、アニメ、風景、人物、都市、動物などを素早く分類できます。',
+                 capabilityTagBody: '画像や動画に対して WD マルチラベルモデルが自動生成したタグを返し、検索強化、素材整理、モデル駆動の分類に利用できます。',
                 capabilityFileTitle: '幅広いファイル対応',
                 capabilityFileBody: 'image、PDF、video、archive、doc、docx を1つの統一アップロード入口で扱えます。',
                 capabilityPrivacyTitle: '認証とプライバシー',
                 capabilityPrivacyBody: '任意の Bearer Token 認証を維持し、重いフロントエンド依存なしでローカルやプライベート環境に適しています。',
                 panelKicker: '統一アップロードパネル',
                 panelTitle: '1回アップロードして2つのモードを切り替え',
-                panelSubtitle: 'デフォルトは Safety Check で、Auto Tagging に切り替えると同じアップロード処理が自動的に /tag に送信されます。',
+                 panelSubtitle: 'デフォルトは Safety Check で、Auto Tagging に切り替えると同じアップロード処理が自動的に /tag に送信され、モデル生成タグを返します。',
                 modeCheckTitle: 'Safety Check',
                 modeCheckDesc: 'NSFW / normal スコアと審査ステータスを表示',
                 modeTagTitle: 'Auto Tagging',
