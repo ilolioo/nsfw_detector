@@ -32,7 +32,7 @@ COPY requirements.txt ./
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
-COPY app.py config.py processors.py utils.py index.html ./
+COPY app.py config.py processors.py utils.py index.html api-docs.html ./
 
 EXPOSE 3333
 
