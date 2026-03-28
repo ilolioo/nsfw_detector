@@ -17,7 +17,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils import ArchiveHandler, can_process_file, sort_files_by_priority
 from config import (
     MAX_FILE_SIZE, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, 
-    NSFW_THRESHOLD, FFMPEG_MAX_FRAMES, FFMPEG_TIMEOUT, ARCHIVE_EXTENSIONS
+    NSFW_THRESHOLD, FFMPEG_MAX_FRAMES, FFMPEG_TIMEOUT, ARCHIVE_EXTENSIONS,
+    TAG_TOP_K, TAG_MIN_SCORE, TAG_LABELS
 )
 
 # 配置日志
@@ -73,8 +74,53 @@ class ModelManager:
             
         return self.pipe
 
+
+class TagModelManager:
+    _instance = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = TagModelManager()
+        return cls._instance
+
+    def __init__(self):
+        self.labels = TAG_LABELS
+        self.pipe = None
+        self.candidate_labels = [item['hypothesis'] for item in TAG_LABELS]
+        self.usage_count = 0
+        self.reset_threshold = 5000
+        logger.info("标签模型管理器已创建，首次调用时加载模型")
+
+    def get_pipeline(self):
+        if self.pipe is None:
+            self.pipe = pipeline(
+                "zero-shot-image-classification",
+                model="openai/clip-vit-base-patch32",
+                device=-1
+            )
+            logger.info("标签模型加载完成")
+
+        self.usage_count += 1
+
+        if self.usage_count >= self.reset_threshold:
+            logger.info(f"标签模型已处理 {self.usage_count} 张图片，执行重置")
+            old_pipe = self.pipe
+            self.pipe = pipeline(
+                "zero-shot-image-classification",
+                model="openai/clip-vit-base-patch32",
+                device=-1
+            )
+            del old_pipe
+            gc.collect()
+            self.usage_count = 0
+            logger.info("标签模型重置完成")
+
+        return self.pipe
+
 # 初始化模型管理器实例
 model_manager = ModelManager.get_instance()
+tag_model_manager = TagModelManager.get_instance()
 
 class VideoProcessor:
     def __init__(self, video_path):
@@ -337,6 +383,136 @@ def process_image(image):
     except Exception as e:
         logger.error(f"图片处理失败: {str(e)}")
         raise Exception(f"Image processing failed: {str(e)}")
+
+
+def _normalize_tag_results(result, include_fallback=True):
+    """规范化标签结果"""
+    tags = []
+    for item in result:
+        score = float(item.get('score', 0))
+        if score < TAG_MIN_SCORE:
+            continue
+
+        hypothesis = item.get('label', '').strip().lower()
+        matched = next((label for label in TAG_LABELS if label['hypothesis'].lower() == hypothesis), None)
+        if not matched:
+            continue
+
+        tags.append({
+            'key': matched['key'],
+            'label': matched['label'],
+            'score': round(score, 4)
+        })
+
+    tags.sort(key=lambda item: item['score'], reverse=True)
+    tags = tags[:TAG_TOP_K]
+
+    if include_fallback and not tags:
+        other_label = next(label for label in TAG_LABELS if label['key'] == 'other')
+        tags = [{
+            'key': other_label['key'],
+            'label': other_label['label'],
+            'score': 1.0
+        }]
+
+    return tags
+
+
+def process_image_tags(image):
+    """处理单张图片并返回自动标签结果"""
+    try:
+        logger.info("开始处理图片标签")
+        pipe = tag_model_manager.get_pipeline()
+        result = pipe(image, candidate_labels=tag_model_manager.candidate_labels)
+        tags = _normalize_tag_results(result, include_fallback=True)
+        logger.info(f"图片标签处理完成，返回 {len(tags)} 个标签")
+
+        gc.collect()
+
+        return {
+            'type': 'image',
+            'tags': tags
+        }
+    except Exception as e:
+        logger.error(f"图片标签处理失败: {str(e)}")
+        raise Exception(f"Image tag processing failed: {str(e)}")
+
+
+class TagVideoProcessor(VideoProcessor):
+    def _process_frame(self, frame_path):
+        try:
+            with Image.open(frame_path) as img:
+                result = process_image_tags(img)
+                frame_num = int(Path(frame_path).stem.split('-')[1])
+                gc.collect()
+                return frame_num, result
+        except Exception as e:
+            logger.error(f"处理标签帧 {frame_path} 失败: {str(e)}")
+            return None, None
+
+    def process(self):
+        try:
+            self._get_video_info()
+            frame_files = self._extract_keyframes()
+            if not frame_files:
+                logger.warning("未能提取到任何关键帧用于标签分类")
+                return None
+
+            tag_scores = {}
+            frames_analyzed = 0
+
+            for frame in sorted(frame_files):
+                _, result = self._process_frame(frame)
+                if result is None:
+                    continue
+
+                frames_analyzed += 1
+                frame_tags = []
+                for tag in result['tags']:
+                    if tag['key'] == 'other':
+                        continue
+                    frame_tags.append(tag)
+
+                for tag in frame_tags:
+                    existing = tag_scores.get(tag['key'])
+                    if existing is None or tag['score'] > existing['score']:
+                        tag_scores[tag['key']] = tag
+
+                gc.collect()
+
+            tags = sorted(tag_scores.values(), key=lambda item: item['score'], reverse=True)[:TAG_TOP_K]
+            if not tags:
+                other_label = next(label for label in TAG_LABELS if label['key'] == 'other')
+                tags = [{
+                    'key': other_label['key'],
+                    'label': other_label['label'],
+                    'score': 1.0
+                }]
+
+            return {
+                'type': 'video',
+                'frames_analyzed': frames_analyzed,
+                'tags': tags
+            }
+        except Exception as e:
+            logger.error(f"处理视频标签失败: {str(e)}")
+            raise
+        finally:
+            if self.temp_dir and os.path.exists(self.temp_dir):
+                try:
+                    shutil.rmtree(self.temp_dir)
+                    logger.info("清理标签视频临时文件完成")
+                except Exception as e:
+                    logger.error(f"清理标签视频临时文件失败: {str(e)}")
+            gc.collect()
+
+
+def process_video_tags(video_path):
+    """处理视频文件并返回自动标签结果"""
+    processor = TagVideoProcessor(video_path)
+    result = processor.process()
+    gc.collect()
+    return result
     
 def process_pdf_file(pdf_stream):
     """使用 pdf2image 处理 PDF 文件并检查内容"""

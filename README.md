@@ -12,6 +12,8 @@
 这是一个 NSFW 内容检测器，它基于 [Falconsai/nsfw_image_detection](https://huggingface.co/Falconsai/nsfw_image_detection) 。
 模型: google/vit-base-patch16-224-in21k
 
+现在同时支持图片、视频自动标签分类接口，可输出如动漫、风景、少女、城市、动物等自动生成标签。
+
 相比其它常见的 NSFW 检测器，这个检测器的优势在于：
 
 * 基于 AI ，准确度更好。
@@ -83,6 +85,42 @@ curl -X POST -F "file=@/path/to/image.jpg" http://localhost:3333/check
 # 检查本地的文件
 curl -X POST -F "path=/path/to/image.jpg" http://localhost:3333/check
 ```
+
+### 使用 API 进行自动标签分类
+
+```bash
+# 上传图片或视频进行标签分类
+curl -X POST -F "file=@/path/to/image.jpg" http://localhost:3333/tag
+
+# 检查服务器本地文件
+curl -X POST -F "path=/path/to/video.mp4" http://localhost:3333/tag
+```
+
+返回示例：
+
+```json
+{
+  "status": "success",
+  "filename": "sample.jpg",
+  "result": {
+    "type": "image",
+    "tags": [
+      {"key": "anime", "label": "动漫", "score": 0.9123},
+      {"key": "girl", "label": "少女", "score": 0.8642},
+      {"key": "portrait", "label": "人像", "score": 0.6211}
+    ]
+  }
+}
+```
+
+视频返回会额外包含 `frames_analyzed` 字段，表示参与聚合分类的视频帧数量。
+
+### 自动标签分类相关环境变量
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `TAG_TOP_K` | `8` | 自动标签接口最多返回多少个标签 |
+| `TAG_MIN_SCORE` | `0.2` | 自动标签接口最小分数阈值 |
 
 ## 许可证
 

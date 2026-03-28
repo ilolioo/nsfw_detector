@@ -26,6 +26,8 @@ def load_config_from_env():
     - CHECK_ALL_FILES: 是否检查所有文件 (int, 默认0)
     - MAX_INTERVAL_SECONDS: 最大间隔秒数 (int, 默认30)
     - MAX_FILE_SIZE: 最大文件大小 (int, 默认20GB)
+    - TAG_TOP_K: 自动标签返回数量 (int, 默认8)
+    - TAG_MIN_SCORE: 自动标签最小分数阈值 (float, 默认0.2)
     """
     env_config = {}
     env_loaded = {}
@@ -40,6 +42,8 @@ def load_config_from_env():
         'CHECK_ALL_FILES': ('CHECK_ALL_FILES', int),
         'MAX_INTERVAL_SECONDS': ('MAX_INTERVAL_SECONDS', int),
         'MAX_FILE_SIZE': ('MAX_FILE_SIZE', int),
+        'TAG_TOP_K': ('TAG_TOP_K', int),
+        'TAG_MIN_SCORE': ('TAG_MIN_SCORE', float),
     }
 
     for env_var, (config_key, type_func) in env_mappings.items():
@@ -181,6 +185,33 @@ FFMPEG_TIMEOUT = 1800
 CHECK_ALL_FILES = 0
 MAX_INTERVAL_SECONDS = 30
 AUTH_TOKEN = None  # API认证Token，设置后需要在请求头中携带Token
+TAG_TOP_K = 8
+TAG_MIN_SCORE = 0.2
+
+TAG_LABELS = [
+    {'key': 'anime', 'label': '动漫', 'hypothesis': 'anime art'},
+    {'key': 'landscape', 'label': '风景', 'hypothesis': 'landscape'},
+    {'key': 'girl', 'label': '少女', 'hypothesis': 'girl'},
+    {'key': 'woman', 'label': '女性', 'hypothesis': 'woman'},
+    {'key': 'man', 'label': '男性', 'hypothesis': 'man'},
+    {'key': 'portrait', 'label': '人像', 'hypothesis': 'portrait'},
+    {'key': 'outdoor', 'label': '户外', 'hypothesis': 'outdoor scene'},
+    {'key': 'indoor', 'label': '室内', 'hypothesis': 'indoor scene'},
+    {'key': 'nature', 'label': '自然', 'hypothesis': 'nature'},
+    {'key': 'mountain', 'label': '山脉', 'hypothesis': 'mountain'},
+    {'key': 'forest', 'label': '森林', 'hypothesis': 'forest'},
+    {'key': 'beach', 'label': '海滩', 'hypothesis': 'beach'},
+    {'key': 'sky', 'label': '天空', 'hypothesis': 'sky'},
+    {'key': 'city', 'label': '城市', 'hypothesis': 'cityscape'},
+    {'key': 'building', 'label': '建筑', 'hypothesis': 'building'},
+    {'key': 'car', 'label': '汽车', 'hypothesis': 'car'},
+    {'key': 'animal', 'label': '动物', 'hypothesis': 'animal'},
+    {'key': 'food', 'label': '食物', 'hypothesis': 'food'},
+    {'key': 'illustration', 'label': '插画', 'hypothesis': 'illustration'},
+    {'key': 'cartoon', 'label': '卡通', 'hypothesis': 'cartoon'},
+    {'key': 'night', 'label': '夜景', 'hypothesis': 'night scene'},
+    {'key': 'other', 'label': '其他', 'hypothesis': 'other'}
+]
 
 # 从环境变量加载配置
 env_config, env_loaded = load_config_from_env()
@@ -199,6 +230,8 @@ logger.info(f"{'NSFW_THRESHOLD':25s} = {final_nsfw}")
 logger.info(f"{'FFMPEG_MAX_FRAMES':25s} = {final_frames}")
 logger.info(f"{'FFMPEG_TIMEOUT':25s} = {final_timeout}")
 logger.info(f"{'AUTH_TOKEN':25s} = {'***' if final_token else 'None'}")
+logger.info(f"{'TAG_TOP_K':25s} = {env_config.get('TAG_TOP_K', TAG_TOP_K)}")
+logger.info(f"{'TAG_MIN_SCORE':25s} = {env_config.get('TAG_MIN_SCORE', TAG_MIN_SCORE)}")
 if env_loaded:
     logger.info("-" * 50)
     logger.info("以上配置来自环境变量覆盖")
@@ -210,5 +243,6 @@ __all__ = [
     'IMAGE_MIME_TYPES', 'VIDEO_MIME_TYPES', 'ARCHIVE_MIME_TYPES', 'PDF_MIME_TYPES',
     'DOCUMENT_MIME_TYPES',  # 新增
     'SUPPORTED_MIME_TYPES', 'MAX_FILE_SIZE', 'NSFW_THRESHOLD', 'FFMPEG_MAX_FRAMES',
-    'FFMPEG_TIMEOUT', 'CHECK_ALL_FILES', 'MAX_INTERVAL_SECONDS', 'AUTH_TOKEN'
+    'FFMPEG_TIMEOUT', 'CHECK_ALL_FILES', 'MAX_INTERVAL_SECONDS', 'AUTH_TOKEN',
+    'TAG_TOP_K', 'TAG_MIN_SCORE', 'TAG_LABELS'
 ]
