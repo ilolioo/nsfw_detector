@@ -24,7 +24,7 @@ from config import (
     NSFW_MODEL_NAME, NSFW_MODEL_RESET_THRESHOLD,
     TAG_MODEL_NAME, TAG_MODEL_RESET_THRESHOLD,
     WD_GENERAL_THRESHOLD, WD_CHARACTER_THRESHOLD,
-    TAG_TOP_K, TAG_MIN_SCORE
+    TAG_TOP_K, TAG_MIN_SCORE, BROAD_TAG_LABELS, WD_BROAD_TAG_ALIASES
 )
 
 # 配置日志
@@ -455,6 +455,12 @@ def _normalize_nsfw_result(result):
 def _normalize_tag_results(result, include_fallback=True):
     """规范化标签结果"""
     tag_scores = {}
+    alias_lookup = {}
+
+    for broad_key, aliases in WD_BROAD_TAG_ALIASES.items():
+        alias_lookup[broad_key] = broad_key
+        for alias in aliases:
+            alias_lookup[alias.strip().lower()] = broad_key
 
     for item in result:
         score = float(item.get('score', 0))
@@ -465,12 +471,20 @@ def _normalize_tag_results(result, include_fallback=True):
         if not raw_label:
             continue
 
-        existing = tag_scores.get(raw_label)
+        broad_key = alias_lookup.get(raw_label)
+        if not broad_key:
+            continue
+
+        label = BROAD_TAG_LABELS.get(broad_key)
+        if not label:
+            continue
+
+        existing = tag_scores.get(label)
         normalized_score = round(score, 4)
         if existing is None or normalized_score > existing['score']:
-            tag_scores[raw_label] = {
-                'key': raw_label,
-                'label': raw_label,
+            tag_scores[label] = {
+                'key': label,
+                'label': label,
                 'score': normalized_score
             }
 
@@ -481,8 +495,8 @@ def _normalize_tag_results(result, include_fallback=True):
 
     if include_fallback and not tags:
         tags = [{
-            'key': 'other',
-            'label': 'other',
+            'key': '其他',
+            'label': '其他',
             'score': 1.0
         }]
 
@@ -604,10 +618,9 @@ class TagVideoProcessor(VideoProcessor):
 
             tags = sorted(tag_scores.values(), key=lambda item: item['score'], reverse=True)[:TAG_TOP_K]
             if not tags:
-                other_label = next(label for label in TAG_LABELS if label['key'] == 'other')
                 tags = [{
-                    'key': other_label['key'],
-                    'label': other_label['label'],
+                    'key': 'other',
+                    'label': '其他',
                     'score': 1.0
                 }]
 

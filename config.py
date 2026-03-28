@@ -199,8 +199,28 @@ TAG_MODEL_NAME = 'SmilingWolf/wd-vit-tagger-v3'
 TAG_MODEL_RESET_THRESHOLD = 5000
 WD_GENERAL_THRESHOLD = 0.32
 WD_CHARACTER_THRESHOLD = 0.80
-TAG_TOP_K = 16
+TAG_TOP_K = 3
 TAG_MIN_SCORE = 0.15
+
+BROAD_TAG_LABELS = {
+    'anime': '动漫',
+    'manga': '漫画',
+    'girl': '少女',
+    'loli': '萝莉',
+    'woman': '女性',
+    'man': '男性',
+    'animal': '动物',
+    'landscape': '风景',
+    'city': '城市',
+    'building': '建筑',
+    'food': '食物',
+    'product': '商品',
+    'logo': '标志',
+    'interface': '界面',
+    'game': '游戏',
+    'night': '夜景',
+    'other': '其他'
+}
 
 TAG_LABELS = [
     {'key': 'anime', 'label': '动漫', 'hypothesis': 'anime art'},
@@ -406,6 +426,25 @@ WD_TAG_ALIASES = {
     'night': ['night', 'night scene']
 }
 
+WD_BROAD_TAG_ALIASES = {
+    'anime': ['anime', 'anime coloring', 'anime screencap', 'cel shading', 'illustration', 'cartoon'],
+    'manga': ['manga', 'comic'],
+    'girl': ['1girl', 'girl', 'female focus', 'solo female', 'cute girl'],
+    'loli': ['loli'],
+    'woman': ['woman', 'female'],
+    'man': ['1boy', 'boy', 'man', 'male focus'],
+    'animal': ['animal', 'pet', 'bird'],
+    'landscape': ['landscape', 'scenery', 'nature', 'outdoors', 'mountain', 'forest', 'beach', 'sky'],
+    'city': ['city', 'cityscape'],
+    'building': ['building'],
+    'food': ['food', 'drink'],
+    'product': ['product', 'product photo', 'product packaging'],
+    'logo': ['logo', 'icon', 'brand', 'brand name'],
+    'interface': ['user interface', 'ui', 'mobile ui', 'app ui', 'mobile app interface', 'web page', 'website', 'screenshot', 'screen capture', 'document page', 'chart', 'graph', 'infographic', 'text', 'english text'],
+    'game': ['video game', 'video game screenshot', 'game cg'],
+    'night': ['night', 'night scene']
+}
+
 # 从环境变量加载配置
 env_config, env_loaded = load_config_from_env()
 
@@ -452,5 +491,6 @@ __all__ = [
     'NSFW_MODEL_NAME', 'NSFW_MODEL_RESET_THRESHOLD',
     'TAG_MODEL_NAME', 'TAG_MODEL_RESET_THRESHOLD',
     'WD_GENERAL_THRESHOLD', 'WD_CHARACTER_THRESHOLD',
-    'TAG_TOP_K', 'TAG_MIN_SCORE', 'TAG_LABELS', 'TAG_DERIVED_RELATIONS', 'WD_TAG_ALIASES'
+    'TAG_TOP_K', 'TAG_MIN_SCORE', 'TAG_LABELS', 'TAG_DERIVED_RELATIONS', 'WD_TAG_ALIASES',
+    'BROAD_TAG_LABELS', 'WD_BROAD_TAG_ALIASES'
 ]

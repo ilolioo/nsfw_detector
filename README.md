@@ -12,7 +12,7 @@
 这是一个 NSFW 内容检测器，现已升级为更强的本地模型用于鉴黄与标签分类。
 默认鉴黄模型为 `Freepik/nsfw_image_detector`，默认标签分类模型为 `SmilingWolf/wd-vit-tagger-v3`，标签分类使用 WD 系列专用多标签模型而不是 zero-shot CLIP。
 
-现在同时支持图片、视频自动标签分类接口，`/tag` 会直接返回 WD 多标签模型自主识别并生成的原生标签结果，适合检索增强、素材整理与模型驱动分类流程。
+现在同时支持图片、视频自动标签分类接口，`/tag` 会基于模型识别结果输出最多 3 个中文高层标签，例如动漫、少女、萝莉、动物、风景，适合精准归类与素材整理。
 
 相比其它常见的 NSFW 检测器，这个检测器的优势在于：
 
@@ -98,7 +98,7 @@ curl -X POST -F "path=/path/to/image.jpg" http://localhost:3333/check
 
 ### 使用 API 进行自动标签分类
 
-`/tag` 返回的是 WD 模型原生生成的标签，不再强制映射为人工预设的内容分类标签。
+`/tag` 会将模型识别结果聚合为中文高层标签，最多返回 3 个结果，不输出 `long hair` 这类细碎属性标签。
 
 ```bash
 # 上传图片或视频进行标签分类
@@ -117,9 +117,9 @@ curl -X POST -F "path=/path/to/video.mp4" http://localhost:3333/tag
   "result": {
     "type": "image",
     "tags": [
-      {"key": "1girl", "label": "1girl", "score": 0.9984},
-      {"key": "solo", "label": "solo", "score": 0.9961},
-      {"key": "long hair", "label": "long hair", "score": 0.9418}
+      {"key": "动漫", "label": "动漫", "score": 0.9984},
+      {"key": "少女", "label": "少女", "score": 0.9961},
+      {"key": "萝莉", "label": "萝莉", "score": 0.9418}
     ]
   }
 }
@@ -134,7 +134,7 @@ curl -X POST -F "path=/path/to/video.mp4" http://localhost:3333/tag
 | `TAG_MODEL_RESET_THRESHOLD` | `5000` | 标签模型重置阈值 |
 | `WD_GENERAL_THRESHOLD` | `0.32` | WD 通用标签阈值 |
 | `WD_CHARACTER_THRESHOLD` | `0.80` | WD 角色标签阈值 |
-| `TAG_TOP_K` | `16` | 自动标签接口最多返回多少个标签 |
+| `TAG_TOP_K` | `3` | 自动标签接口最多返回多少个标签 |
 | `TAG_MIN_SCORE` | `0.15` | 自动标签接口最小分数阈值 |
 
 ## 许可证
